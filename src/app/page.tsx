@@ -85,12 +85,12 @@ export default function Home() {
 						</div>
 
 						{/* Features row */}
-						<div className={styles.features} dir='rtl'>
+						<div className={styles.features}>
 							{[
 								{
 									icon: '✦',
 									title: 'Support Arabic fonts',
-									desc: 'Ottoman, Nasta\'liq, Kufic, and other copies',
+									desc: "Ottoman, Nasta'liq, Kufic, and other copies",
 								},
 								{
 									icon: '✦',
@@ -117,17 +117,17 @@ export default function Home() {
 				{showResults && (
 					<section className={styles.workspace} ref={resultRef}>
 						{/* File header bar */}
-						<div className={styles.workspaceHeader} dir='rtl'>
+						<div className={styles.workspaceHeader}>
 							<div className={styles.fileInfo}>
 								<span className={styles.fileBadge}>
-									{job.file.type === 'pdf' ? 'PDF' : 'صورة'}
+									{job.file.type === 'pdf' ? 'PDF' : 'image'}
 								</span>
 								<span className={styles.fileName}>{job.file.name}</span>
 							</div>
 
 							{!isComplete && (
 								<button className={styles.newFileBtn} onClick={resetJob}>
-									✕ إلغاء ورفع ملف آخر
+									✕ Cancel and upload another file
 								</button>
 							)}
 						</div>
@@ -160,7 +160,7 @@ export default function Home() {
 										onCopy={() => copyPageText(selectedPage)}
 									/>
 								) : (
-									<div className={styles.noPage}>اختر صفحة من القائمة</div>
+									<div className={styles.noPage}>Select a page from the list</div>
 								)}
 							</div>
 
