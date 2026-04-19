@@ -37,8 +37,7 @@ except Exception as e:
     exit(1)
 
 PROMPT = (
-    "Below is the image of one page of a document, as well as some raw textual "
-    "content that was previously extracted for it. Just return the plain text "
+    "Below is the image of one page of a document. Just return the plain text "
     "representation of this document as if you were reading it naturally. "
     "Do not hallucinate."
 )
