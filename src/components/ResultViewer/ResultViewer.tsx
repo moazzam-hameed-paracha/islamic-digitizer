@@ -14,9 +14,9 @@ interface ResultViewerProps {
 type Tab = 'text' | 'image' | 'split';
 
 const CONFIDENCE_LABEL: Record<string, string> = {
-	high: 'دقة عالية',
-	medium: 'دقة متوسطة',
-	low: 'دقة منخفضة',
+	high: 'High Confidence',
+	medium: 'Medium Confidence',
+	low: 'Low Confidence',
 };
 
 export default function ResultViewer({ page, onCopy }: ResultViewerProps) {
@@ -209,12 +209,21 @@ export default function ResultViewer({ page, onCopy }: ResultViewerProps) {
 			{/* Page footer */}
 			<div className={styles.footer}>
 				<span>Page {page.pageNumber}</span>
-				{page.metadata && (
-					<span>
-						~ {page.metadata.estimatedLines} lines · {page.arabicText.length}{' '}
-						characters
-					</span>
-				)}
+				<span className={styles.footerMeta}>
+					{page.metadata && (
+						<span>
+							~{page.metadata.estimatedLines} lines · {page.arabicText.length} chars
+						</span>
+					)}
+					{page.tokenCount != null && page.maxTokens != null && (
+						<span className={styles.tokenBadge}>
+							{page.tokenCount}/{page.maxTokens} tokens
+						</span>
+					)}
+					{page.duration != null && (
+						<span>{page.duration.toFixed(1)}s</span>
+					)}
+				</span>
 			</div>
 		</div>
 	);

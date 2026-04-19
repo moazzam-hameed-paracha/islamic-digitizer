@@ -78,15 +78,6 @@
   &:hover { background: v.$color-teal-light; }
 }
 
-.secondaryBtn {
-  @extend %btnBase;
-  background: v.$color-surface;
-  color: v.$color-teal;
-  border: 1px solid v.$color-border;
-
-  &:hover { border-color: v.$color-teal; }
-}
-
 .resetBtn {
   @extend %btnBase;
   background: transparent;

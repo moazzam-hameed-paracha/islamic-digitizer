@@ -9,6 +9,8 @@ interface PageNavigatorProps {
 	pages: PageResult[];
 	selectedPage: number;
 	onSelectPage: (page: number) => void;
+	onRemovePage?: (page: number) => void;
+	isProcessing?: boolean;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -22,6 +24,8 @@ export default function PageNavigator({
 	pages,
 	selectedPage,
 	onSelectPage,
+	onRemovePage,
+	isProcessing,
 }: PageNavigatorProps) {
 	return (
 		<nav className={styles.nav} aria-label='Page navigation'>
@@ -29,7 +33,7 @@ export default function PageNavigator({
 
 			<ul className={styles.list} role='list'>
 				{pages.map((page) => (
-					<li key={page.pageNumber}>
+					<li key={page.pageNumber} className={styles.item}>
 						<button
 							className={clsx(styles.pageBtn, {
 								[styles.selected]: page.pageNumber === selectedPage,
@@ -52,10 +56,24 @@ export default function PageNavigator({
 
 							{page.metadata && page.status === 'done' && (
 								<span className={styles.meta}>
-									{page.metadata.estimatedLines} line
+									{page.metadata.estimatedLines} lines
 								</span>
 							)}
 						</button>
+
+						{/* Remove button — only shown when not actively processing */}
+						{onRemovePage && !isProcessing && (
+							<button
+								className={styles.removeBtn}
+								onClick={(e) => {
+									e.stopPropagation();
+									onRemovePage(page.pageNumber);
+								}}
+								aria-label={`Remove page ${page.pageNumber}`}
+								title='Remove page'>
+								✕
+							</button>
+						)}
 					</li>
 				))}
 			</ul>

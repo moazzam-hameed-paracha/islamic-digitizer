@@ -269,12 +269,32 @@
 .footer {
 	display: flex;
 	justify-content: space-between;
+	align-items: center;
 	padding: v.$space-2 v.$space-4;
 	background: v.$color-surface-2;
 	border-top: 1px solid v.$color-border;
 	font-family: v.$font-ui;
 	font-size: 0.7rem;
 	color: v.$color-muted;
+	flex-shrink: 0;
+}
+
+.footerMeta {
+	display: flex;
+	align-items: center;
+	gap: v.$space-3;
+}
+
+.tokenBadge {
+	font-family: v.$font-ui;
+	font-size: 0.65rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	padding: 1px v.$space-2;
+	background: rgba(26, 74, 58, 0.08);
+	color: v.$color-teal;
+	border: 1px solid rgba(26, 74, 58, 0.15);
+	border-radius: v.$radius-sm;
 }
 
 // ─── Placeholder states ───────────────────────────────────────────────────────

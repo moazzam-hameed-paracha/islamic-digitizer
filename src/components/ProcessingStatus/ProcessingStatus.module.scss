@@ -86,6 +86,22 @@
   &:hover { opacity: 1; background: rgba(201,168,76,0.1); }
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: v.$space-3;
+  flex-shrink: 0;
+}
+
+.elapsed {
+  font-family: v.$font-ui;
+  font-size: 0.8rem;
+  color: v.$color-gold;
+  opacity: 0.8;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 .progressTrack {
   height: 4px;

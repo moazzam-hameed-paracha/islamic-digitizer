@@ -160,12 +160,28 @@ async def digitize_image(payload: OCRRequest):
             flush=True,
         )
         output_text = "".join(output_tokens)
+        max_tokens_reached = token_count >= MAX_TOKENS
 
         duration = time.time() - start_time
+
+        if max_tokens_reached:
+            print(f"[{request_id}] MAX TOKENS REACHED ({token_count}/{MAX_TOKENS}), aborting.", flush=True)
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "MAX_TOKENS_REACHED",
+                    "message": f"Output was truncated: the model hit the {MAX_TOKENS}-token limit before finishing.",
+                    "tokenCount": token_count,
+                    "maxTokens": MAX_TOKENS,
+                }
+            )
+
         return {
             "id": request_id,
             "text": output_text,
-            "duration": round(duration, 2)
+            "duration": round(duration, 2),
+            "tokenCount": token_count,
+            "maxTokens": MAX_TOKENS,
         }
 
     except Exception as e:

@@ -29,6 +29,40 @@
   padding-right: 2px;
 }
 
+.item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+
+  &:hover .removeBtn {
+    opacity: 1;
+  }
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  background: transparent;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-sm;
+  color: v.$color-muted;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity v.$transition-fast, color v.$transition-fast, border-color v.$transition-fast, background v.$transition-fast;
+
+  &:hover {
+    color: v.$color-crimson;
+    border-color: v.$color-crimson;
+    background: rgba(139, 38, 53, 0.06);
+  }
+}
+
 .pageBtn {
   width: 100%;
   display: flex;
@@ -120,6 +154,12 @@
     overflow-x: auto;
     overflow-y: hidden;
     padding-bottom: 4px;
+  }
+  .item {
+    flex-direction: column-reverse;
+  }
+  .removeBtn {
+    opacity: 1; // always visible on mobile/tablet
   }
   .pageBtn {
     flex-direction: column;

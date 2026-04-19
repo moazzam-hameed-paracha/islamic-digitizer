@@ -6,12 +6,16 @@ import styles from './FileUploader.module.scss';
 import clsx from 'clsx';
 
 interface FileUploaderProps {
-	onFileSelect: (file: File) => void;
+	onFileSelect: (files: File | File[]) => void;
 	disabled?: boolean;
 }
 
-const ACCEPTED = {
-	'application/pdf': ['.pdf'],
+const PDF_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PDF !== 'false';
+
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+const ACCEPTED: Record<string, string[]> = {
+	...(PDF_ENABLED ? { 'application/pdf': ['.pdf'] } : {}),
 	'image/jpeg': ['.jpg', '.jpeg'],
 	'image/png': ['.png'],
 	'image/webp': ['.webp'],
@@ -24,6 +28,19 @@ function isValidFile(file: File) {
 	return Object.keys(ACCEPTED).includes(file.type);
 }
 
+// Given a FileList, returns either a single PDF, all valid images, or null.
+function resolveFiles(fileList: FileList): File | File[] | null {
+	const files = Array.from(fileList).filter(isValidFile);
+	if (files.length === 0) return null;
+
+	// If any PDF is included, just take the first PDF (multi-PDF not supported)
+	const pdf = files.find((f) => f.type === 'application/pdf');
+	if (pdf) return pdf;
+
+	// All images — return the full array
+	return files.length === 1 ? files[0] : files;
+}
+
 export default function FileUploader({
 	onFileSelect,
 	disabled,
@@ -32,14 +49,19 @@ export default function FileUploader({
 	const [error, setError] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	const handleFile = useCallback(
-		(file: File) => {
+	const handleFiles = useCallback(
+		(fileList: FileList) => {
 			setError(null);
-			if (!isValidFile(file)) {
-				setError('Please upload a PDF or image file (JPEG, PNG, WebP).');
+			const resolved = resolveFiles(fileList);
+			if (!resolved) {
+				setError(
+					PDF_ENABLED
+						? 'Please upload a PDF or image file (JPEG, PNG, WebP).'
+						: 'Please upload an image file (JPEG, PNG, WebP).',
+				);
 				return;
 			}
-			onFileSelect(file);
+			onFileSelect(resolved);
 		},
 		[onFileSelect],
 	);
@@ -55,14 +77,11 @@ export default function FileUploader({
 		e.preventDefault();
 		setDragging(false);
 		if (disabled) return;
-		const file = e.dataTransfer.files?.[0];
-		if (file) handleFile(file);
+		if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
 	};
 
 	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (file) handleFile(file);
-		// Reset so same file can be re-selected
+		if (e.target.files?.length) handleFiles(e.target.files);
 		e.target.value = '';
 	};
 
@@ -85,7 +104,7 @@ export default function FileUploader({
 				onClick={() => !disabled && inputRef.current?.click()}
 				role='button'
 				tabIndex={disabled ? -1 : 0}
-				aria-label='Upload a file for digital conversion'
+				aria-label='Upload files for digital conversion'
 				onKeyDown={(e) => {
 					if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
 						e.preventDefault();
@@ -96,6 +115,7 @@ export default function FileUploader({
 					ref={inputRef}
 					type='file'
 					accept={ACCEPT_STRING}
+					multiple
 					onChange={onChange}
 					className={styles.hiddenInput}
 					disabled={disabled}
@@ -107,7 +127,6 @@ export default function FileUploader({
 						viewBox='0 0 64 64'
 						fill='none'
 						xmlns='http://www.w3.org/2000/svg'>
-						{/* Geometric star pattern */}
 						<polygon
 							points='32,4 37,18 52,18 40,27 44,42 32,33 20,42 24,27 12,18 27,18'
 							fill='none'
@@ -115,7 +134,6 @@ export default function FileUploader({
 							strokeWidth='1'
 							strokeLinejoin='round'
 						/>
-						{/* Upload arrow */}
 						<path
 							d='M32 54 L32 34 M24 42 L32 34 L40 42'
 							stroke='currentColor'
@@ -128,16 +146,17 @@ export default function FileUploader({
 
 				<div className={styles.textGroup}>
 					<p className={styles.primaryText}>
-						{dragging ? 'Drop the file here' : 'Upload your file here'}
+						{dragging ? 'Drop the files here' : 'Upload your files here'}
 					</p>
 					<p className={styles.secondaryText}>
-						Or click to select from your device
+						Or click to select — multiple images supported
 					</p>
 					<div className={styles.formats} dir='ltr'>
-						<span className={styles.formatBadge}>PDF</span>
+						{PDF_ENABLED && <span className={styles.formatBadge}>PDF</span>}
 						<span className={styles.formatBadge}>JPEG</span>
 						<span className={styles.formatBadge}>PNG</span>
 						<span className={styles.formatBadge}>WebP</span>
+						<span className={styles.formatBadge}>multiple ✦</span>
 					</div>
 				</div>
 			</div>

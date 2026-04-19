@@ -11,7 +11,7 @@ function generateId() {
 }
 
 function detectFileType(file: File): FileType {
-  if (file.type === "application/pdf") return "pdf";
+  if (file.type === "application/pdf" && process.env.NEXT_PUBLIC_ENABLE_PDF !== "false") return "pdf";
   return "image";
 }
 
@@ -20,28 +20,39 @@ export function useDigitizer() {
   const [selectedPage, setSelectedPage] = useState<number>(1);
   const abortRef = useRef<boolean>(false);
 
-  const startJob = useCallback(async (file: File) => {
+  // ── startJob ───────────────────────────────────────────────────────────────
+  // Accepts a single PDF/image File, or an array of image Files (batch mode).
+  const startJob = useCallback(async (input: File | File[]) => {
     abortRef.current = false;
-    const fileType = detectFileType(file);
 
+    const files = Array.isArray(input) ? input : [input];
+    const firstFile = files[0];
+    const fileType = detectFileType(firstFile);
+    const isMultiImage = fileType === "image" && files.length > 1;
+
+    // Preview: only for single images
     let preview: string | undefined;
-    if (fileType === "image") {
-      preview = await imageFileToDataUrl(file);
+    if (fileType === "image" && !isMultiImage) {
+      preview = await imageFileToDataUrl(firstFile);
     }
+
+    const displayName = isMultiImage
+      ? `${files.length} images`
+      : firstFile.name;
 
     const uploaded: UploadedFile = {
       id: generateId(),
-      file,
+      file: firstFile,
       type: fileType,
-      name: file.name,
-      size: file.size,
+      name: displayName,
+      size: files.reduce((acc, f) => acc + f.size, 0),
       preview,
     };
 
     // Count pages
-    let totalPages = 1;
+    let totalPages = files.length; // 1 per image file; overridden for PDFs below
     if (fileType === "pdf") {
-      totalPages = await getPdfPageCount(file);
+      totalPages = await getPdfPageCount(firstFile);
     }
 
     const initialPages: PageResult[] = Array.from({ length: totalPages }, (_, i) => ({
@@ -54,6 +65,7 @@ export function useDigitizer() {
     const newJob: DigitizationJob = {
       id: generateId(),
       file: uploaded,
+      sourceFiles: isMultiImage ? files : undefined,
       totalPages,
       currentPage: 0,
       pages: initialPages,
@@ -70,7 +82,6 @@ export function useDigitizer() {
 
       const pageNum = i + 1;
 
-      // Update current page being processed
       setJob((prev) => {
         if (!prev) return prev;
         const pages = [...prev.pages];
@@ -83,11 +94,15 @@ export function useDigitizer() {
         let mediaType: string;
 
         if (fileType === "pdf") {
-          imageBase64 = await renderPdfPageToBase64(file, pageNum);
+          imageBase64 = await renderPdfPageToBase64(firstFile, pageNum);
           mediaType = "image/png";
+        } else if (isMultiImage) {
+          // each page maps to its own source file
+          imageBase64 = await imageFileToBase64(files[i]);
+          mediaType = getMediaType(files[i]);
         } else {
-          imageBase64 = await imageFileToBase64(file);
-          mediaType = getMediaType(file);
+          imageBase64 = await imageFileToBase64(firstFile);
+          mediaType = getMediaType(firstFile);
         }
 
         const res = await fetch("/api/digitize", {
@@ -95,6 +110,15 @@ export function useDigitizer() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64, mediaType }),
         });
+
+        if (res.status === 422) {
+          const errBody = await res.json();
+          if (errBody.error === "MAX_TOKENS_REACHED") {
+            throw new Error(
+              `Max tokens reached (${errBody.tokenCount ?? "?"}/${errBody.maxTokens ?? "?"}): output was truncated before completion.`
+            );
+          }
+        }
 
         if (!res.ok) throw new Error(`API error: ${res.status}`);
 
@@ -110,6 +134,9 @@ export function useDigitizer() {
             status: "done",
             confidence: ocrResult.confidence,
             metadata: ocrResult.metadata,
+            tokenCount: ocrResult.tokenCount,
+            maxTokens: ocrResult.maxTokens,
+            duration: ocrResult.duration,
           };
           return { ...prev, pages };
         });
@@ -129,7 +156,6 @@ export function useDigitizer() {
       }
     }
 
-    // Mark job complete
     setJob((prev) => {
       if (!prev) return prev;
       return {
@@ -137,6 +163,21 @@ export function useDigitizer() {
         status: abortRef.current ? "error" : "complete",
         completedAt: new Date(),
       };
+    });
+  }, []);
+
+  // ── removePage ─────────────────────────────────────────────────────────────
+  // Removes one page from a completed job and adjusts selectedPage if needed.
+  const removePage = useCallback((pageNumber: number) => {
+    setJob((prev) => {
+      if (!prev) return prev;
+      const pages = prev.pages.filter((p) => p.pageNumber !== pageNumber);
+      if (pages.length === 0) return null; // removed last page → reset
+      return { ...prev, pages, totalPages: pages.length };
+    });
+    setSelectedPage((prev) => {
+      // If the removed page was selected, move to the nearest remaining page
+      return prev === pageNumber ? Math.max(1, pageNumber - 1) : prev;
     });
   }, []);
 
@@ -151,11 +192,13 @@ export function useDigitizer() {
     setSelectedPage(1);
   }, []);
 
+  // ── exportAllText ──────────────────────────────────────────────────────────
+  // Exports all completed pages as a single .txt file with page separators.
   const exportAllText = useCallback(() => {
     if (!job) return;
     const allText = job.pages
       .filter((p) => p.status === "done")
-      .map((p) => `--- صفحة ${p.pageNumber} ---\n\n${p.arabicText}`)
+      .map((p) => `════════════════════\nصفحة ${p.pageNumber}\n════════════════════\n\n${p.arabicText}`)
       .join("\n\n");
 
     const blob = new Blob([allText], { type: "text/plain;charset=utf-8" });
@@ -185,6 +228,7 @@ export function useDigitizer() {
     startJob,
     cancelJob,
     resetJob,
+    removePage,
     exportAllText,
     copyPageText,
   };

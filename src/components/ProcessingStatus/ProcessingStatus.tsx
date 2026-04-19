@@ -4,6 +4,7 @@
 import { DigitizationJob } from '@/types';
 import styles from './ProcessingStatus.module.scss';
 import clsx from 'clsx';
+import { useEffect, useState } from 'react';
 
 interface ProcessingStatusProps {
 	job: DigitizationJob;
@@ -21,6 +22,27 @@ export default function ProcessingStatus({
 
 	const isProcessing = job.status === 'processing';
 	const isComplete = job.status === 'complete';
+
+	// ── Elapsed-time ticker ────────────────────────────────────────────────────
+	const [elapsed, setElapsed] = useState(0);
+
+	useEffect(() => {
+		if (!isProcessing) {
+			setElapsed(0);
+			return;
+		}
+		const start = Date.now();
+		const id = setInterval(() => {
+			setElapsed(Math.floor((Date.now() - start) / 1000));
+		}, 1000);
+		return () => clearInterval(id);
+	}, [isProcessing]);
+
+	const formatElapsed = (s: number) => {
+		const m = Math.floor(s / 60);
+		const sec = s % 60;
+		return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+	};
 
 	return (
 		<div className={styles.wrapper}>
@@ -63,11 +85,18 @@ export default function ProcessingStatus({
 					</div>
 				</div>
 
-				{isProcessing && (
-					<button className={styles.cancelBtn} onClick={onCancel}>
-						Stop
-					</button>
-				)}
+				<div className={styles.headerRight}>
+					{isProcessing && (
+						<span className={styles.elapsed} aria-live='polite'>
+							⏱ {formatElapsed(elapsed)}
+						</span>
+					)}
+					{isProcessing && (
+						<button className={styles.cancelBtn} onClick={onCancel}>
+							Stop
+						</button>
+					)}
+				</div>
 			</div>
 
 			{/* Progress bar */}

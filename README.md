@@ -1,6 +1,6 @@
 # مرقمن — Islamic Manuscript Digitizer
 
-A production-ready **Next.js 15 + TypeScript + Modular SCSS** SPA for digitizing Arabic Islamic manuscripts, backed by the locally-running **Qari-OCR-0.1-VL-2B** model via Gradio.
+A production-ready **Next.js 15 + TypeScript + Modular SCSS** SPA for digitizing Arabic Islamic manuscripts, backed by a locally-running **Qari-OCR-0.1-VL-2B** model served via **FastAPI** (not Gradio).
 
 ---
 
@@ -11,13 +11,15 @@ Browser (Next.js SPA)
     │  upload image / render PDF page → base64
     ▼
 Next.js API Route  /api/digitize
-    │  POST { data: ["data:image/png;base64,..."] }
+    │  POST { imageBase64, mediaType }
     ▼
-Gradio server  http://localhost:7860/api/predict
+FastAPI server  http://localhost:7860/api/digitize
     │  running  oddadmix/Qari-OCR-0.1-VL-2B-Instruct
+    │  → grayscale pre-processing → Qwen2-VL inference
+    │  → streamed token generation
     ▼
-{ data: ["extracted Arabic text"] }
-    │  derive metadata (lines, diacritics, headings)
+{ id, text, duration, tokenCount, maxTokens }
+    │  derive metadata (lines, diacritics, headings, confidence)
     ▼
 Browser  →  ResultViewer (split image / text view)
 ```
@@ -26,28 +28,32 @@ Browser  →  ResultViewer (split image / text view)
 
 ## Features
 
-- 📄 **PDF support** — Multi-page PDFs rendered page-by-page via `pdfjs-dist`
+- 📄 **PDF support** — Multi-page PDFs rendered page-by-page via `pdfjs-dist` *(can be disabled via env — see Configuration)*
 - 🖼️ **Image support** — JPEG, PNG, WebP, GIF
-- 🤖 **Qari-OCR** — Specialized Arabic OCR model (Qwen2-VL 2B fine-tune)
+- 🤖 **Qari-OCR** — Specialized Arabic OCR model (Qwen2-VL 2B fine-tune on Islamic manuscripts)
 - 📖 **Split-view** — Side-by-side original image + extracted Arabic text
 - 🔤 **RTL-first UI** — Fully right-to-left Arabic interface with Amiri font
-- 📊 **Metadata** — Auto-detected confidence, line count, diacritics, headings
-- 💾 **Export** — Download as `.txt` or `.json`
-- ⚡ **Sequential processing** — Pages processed one-by-one with live progress
+- 📊 **Metadata** — Auto-detected confidence level, line count, diacritics, headings
+- 🪙 **Token tracking** — Per-page token count and model limit displayed in the result footer
+- ⏱️ **Live elapsed timer** — Seconds counter shown while a page is being processed
+- ⛔ **Max-token guard** — If the model hits its token limit mid-generation, the API aborts and surfaces a clear error rather than returning silently truncated text
+- 💾 **Export** — Download all pages as `.txt` or `.json`
+- ⚡ **Sequential processing** — Pages processed one-by-one with live progress bar and dot indicators
 
 ---
 
 ## Tech Stack
 
-| Layer        | Technology                               |
-|-------------|-------------------------------------------|
-| Framework   | Next.js 15 (App Router)                   |
-| Language    | TypeScript 5                              |
-| Styling     | Modular SCSS + CSS Custom Properties      |
-| PDF Engine  | pdfjs-dist 4                              |
-| OCR Model   | `oddadmix/Qari-OCR-0.1-VL-2B-Instruct`  |
-| OCR Server  | Gradio (Python, local)                    |
-| Fonts       | Amiri (Arabic), Cinzel (Display), Lato (UI) |
+| Layer       | Technology                                        |
+|-------------|---------------------------------------------------|
+| Framework   | Next.js 15 (App Router)                           |
+| Language    | TypeScript 5                                      |
+| Styling     | Modular SCSS + Design Tokens (`_variables.scss`)  |
+| PDF Engine  | pdfjs-dist 4                                      |
+| OCR Model   | `oddadmix/Qari-OCR-0.1-VL-2B-Instruct`           |
+| OCR Server  | FastAPI + Uvicorn (Python, local)                 |
+| ML Runtime  | PyTorch + HuggingFace Transformers                |
+| Fonts       | Amiri (Arabic), Cinzel (Display), Lato (UI)       |
 
 ---
 
@@ -55,30 +61,43 @@ Browser  →  ResultViewer (split image / text view)
 
 ### 1. Start the Qari OCR Python server
 
+The OCR backend is a **FastAPI** app (`main.py`), managed with `uv`.
+
 ```bash
-pip install gradio transformers qwen-vl-utils torch pillow
-python qari_ocr.py        # your existing Gradio script
-# → Running on http://localhost:7860
+# Install uv if you don't have it
+pip install uv
+
+# Install Python dependencies
+uv sync
+
+# Run the server (defaults to http://localhost:7860)
+uv run uvicorn main:app --host 0.0.0.0 --port 7860
 ```
 
-### 2. Clone & install the Next.js app
+The server loads the model on startup — expect ~30–60 seconds before it's ready. You'll see `[SUCCESS] Model Ready.` in the logs when it's accepting requests.
+
+> **GPU note:** CUDA is used automatically when available. CPU inference is supported but significantly slower.
+
+### 2. Install the Next.js app
 
 ```bash
-git clone <your-repo>
-cd islamic-digitizer
 npm install
 ```
 
-### 3. Configure environment (optional)
+### 3. Configure environment
 
 ```bash
 cp .env.example .env.local
 ```
 
-The default Gradio URL is `http://localhost:7860`. If you changed the port, edit `.env.local`:
+Edit `.env.local` as needed (defaults are fine for local development):
 
 ```env
+# URL of the FastAPI OCR server
 GRADIO_URL=http://localhost:7860
+
+# Set to "false" to disable PDF uploads (image-only mode)
+NEXT_PUBLIC_ENABLE_PDF=true
 ```
 
 ### 4. Run the dev server
@@ -96,48 +115,96 @@ npm run build && npm start
 
 ---
 
+## Configuration
+
+| Variable                 | Default                 | Description                                                                |
+|--------------------------|-------------------------|----------------------------------------------------------------------------|
+| `GRADIO_URL`             | `http://localhost:7860` | Base URL of the FastAPI OCR server. Change if you moved the port or host. |
+| `NEXT_PUBLIC_ENABLE_PDF` | `true`                  | Set to `"false"` to hide PDF upload support entirely (image-only mode).   |
+
+---
+
 ## Project Structure
 
 ```
-src/
-├── app/
-│   ├── api/digitize/route.ts   # Gradio proxy (calls /api/predict)
-│   ├── globals.scss            # Global styles & Google Fonts
-│   ├── layout.tsx              # Root layout (RTL, lang="ar")
-│   ├── page.tsx                # Main SPA page
-│   └── page.module.scss
-├── components/
-│   ├── Header/                 # App header with Islamic ornaments
-│   ├── FileUploader/           # Drag-and-drop upload zone
-│   ├── ProcessingStatus/       # Progress bar + page dot indicators
-│   ├── PageNavigator/          # Sidebar page list
-│   ├── ResultViewer/           # Split/text/image tab viewer
-│   └── ExportPanel/            # Export & stats panel
-├── hooks/
-│   └── useDigitizer.ts         # Core state machine & processing logic
-├── styles/
-│   └── _variables.scss         # Design tokens
-├── types/index.ts
-└── utils/
-    ├── pdfUtils.ts             # PDF → canvas → base64
-    └── imageUtils.ts           # Image file → base64
+.
+├── main.py                         # FastAPI OCR server (Qwen2-VL inference)
+├── pyproject.toml                  # Python dependencies (managed by uv)
+├── .env.example                    # Environment variable template
+└── src/
+    ├── app/
+    │   ├── api/digitize/route.ts   # Next.js proxy to FastAPI; handles 422 max-token errors
+    │   ├── globals.scss            # Global styles & Google Fonts imports
+    │   ├── layout.tsx              # Root layout (RTL, lang="ar")
+    │   ├── page.tsx                # Main SPA page (hero + workspace)
+    │   └── page.module.scss        # Full-viewport layout; panels scroll independently
+    ├── components/
+    │   ├── Header/                 # Slim sticky header with Islamic ornament
+    │   ├── FileUploader/           # Drag-and-drop zone; PDF badge conditional on env
+    │   ├── ProcessingStatus/       # Progress bar, page dots, live elapsed timer
+    │   ├── PageNavigator/          # Sidebar page list (multi-page PDFs)
+    │   ├── ResultViewer/           # Split/text/image tabs; footer shows token count + duration
+    │   └── ExportPanel/            # Export all pages + reset
+    ├── hooks/
+    │   └── useDigitizer.ts         # Core state machine, sequential processing, error handling
+    ├── styles/
+    │   └── _variables.scss         # Design tokens (palette, spacing, typography, breakpoints)
+    ├── types/index.ts              # Shared TypeScript types
+    └── utils/
+        ├── pdfUtils.ts             # PDF page → canvas → base64
+        └── imageUtils.ts           # Image file → base64 / data URL
 ```
 
 ---
 
-## Gradio API Protocol
+## API Protocol
 
-The Next.js API route speaks directly to Gradio's built-in REST API:
+The Next.js route proxies requests to the FastAPI server.
 
+**Request (Next.js → FastAPI)**
 ```http
-POST http://localhost:7860/api/predict
+POST http://localhost:7860/api/digitize
 Content-Type: application/json
 
-{ "data": ["data:image/png;base64,<base64>"] }
+{ "dataUrl": "data:image/png;base64,<base64>" }
 ```
 
+**Success response**
 ```json
-{ "data": ["extracted Arabic text..."], "duration": 3.14 }
+{
+  "id": "a1b2c3d4",
+  "text": "بسم الله الرحمن الرحيم ...",
+  "duration": 14.82,
+  "tokenCount": 1423,
+  "maxTokens": 2000
+}
+```
+
+**Max-token error (HTTP 422)**
+
+When the model fills its entire token budget before finishing, the server aborts and returns:
+
+```json
+{
+  "detail": {
+    "code": "MAX_TOKENS_REACHED",
+    "message": "Output was truncated: the model hit the 2000-token limit before finishing.",
+    "tokenCount": 2000,
+    "maxTokens": 2000
+  }
+}
+```
+
+The Next.js route surfaces this as a descriptive page-level error in the UI rather than silently storing partial text.
+
+---
+
+## Changing the Token Limit
+
+Edit `MAX_TOKENS` in `main.py`:
+
+```python
+MAX_TOKENS = 2000  # increase for longer pages, decrease for faster responses
 ```
 
 ---

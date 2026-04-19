@@ -19,15 +19,15 @@ export default function Home() {
 		startJob,
 		cancelJob,
 		resetJob,
+		removePage,
 		exportAllText,
 		copyPageText,
 	} = useDigitizer();
 
 	const resultRef = useRef<HTMLDivElement>(null);
 
-	const handleFileSelect = (file: File) => {
-		startJob(file);
-		// Give the DOM a tick to render the results section, then scroll to it
+	const handleFileSelect = (files: File | File[]) => {
+		startJob(files);
 		setTimeout(() => {
 			resultRef.current?.scrollIntoView({ behavior: 'smooth' });
 		}, 200);
@@ -120,7 +120,11 @@ export default function Home() {
 						<div className={styles.workspaceHeader}>
 							<div className={styles.fileInfo}>
 								<span className={styles.fileBadge}>
-									{job.file.type === 'pdf' ? 'PDF' : 'image'}
+									{job.file.type === 'pdf'
+										? 'PDF'
+										: job.sourceFiles
+											? `${job.pages.length} images`
+											: 'image'}
 								</span>
 								<span className={styles.fileName}>{job.file.name}</span>
 							</div>
@@ -144,6 +148,8 @@ export default function Home() {
 										pages={job.pages}
 										selectedPage={selectedPage}
 										onSelectPage={setSelectedPage}
+										onRemovePage={removePage}
+										isProcessing={job.status === 'processing'}
 									/>
 								</aside>
 							)}

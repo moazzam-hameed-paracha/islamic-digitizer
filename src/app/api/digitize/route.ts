@@ -96,6 +96,21 @@ export async function POST(req: NextRequest) {
 
 		if (!mlRes.ok) {
 			const err = await mlRes.text();
+			let parsedErr: { detail?: { code?: string; message?: string; tokenCount?: number; maxTokens?: number } } = {};
+			try { parsedErr = JSON.parse(err); } catch { /* raw text */ }
+
+			if (mlRes.status === 422 && parsedErr?.detail?.code === 'MAX_TOKENS_REACHED') {
+				return NextResponse.json(
+					{
+						error: 'MAX_TOKENS_REACHED',
+						details: parsedErr.detail?.message ?? 'Token limit reached',
+						tokenCount: parsedErr.detail?.tokenCount,
+						maxTokens: parsedErr.detail?.maxTokens,
+					},
+					{ status: 422 },
+				);
+			}
+
 			console.error('Gradio OCR error:', err);
 			return NextResponse.json(
 				{ error: 'Gradio server returned an error', details: err },
@@ -107,11 +122,17 @@ export async function POST(req: NextRequest) {
 			id: string;
 			text: string;
 			duration: number;
+			tokenCount?: number;
+			maxTokens?: number;
 		};
 
 		const { confidence, metadata } = deriveMetadata(gradioData.text);
 
-		return NextResponse.json({ ...gradioData, confidence, metadata });
+		return NextResponse.json({
+			...gradioData,
+			confidence,
+			metadata,
+		});
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
 
