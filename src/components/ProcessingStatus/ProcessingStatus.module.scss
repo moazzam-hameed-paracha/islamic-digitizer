@@ -1,0 +1,164 @@
+// src/components/ProcessingStatus/ProcessingStatus.module.scss
+@use '../../styles/variables' as v;
+
+.wrapper {
+  background: v.$color-teal;
+  border-radius: v.$radius-lg;
+  padding: v.$space-5;
+  color: v.$color-gold-light;
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-4;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: v.$space-4;
+  direction: rtl;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: v.$space-3;
+}
+
+.spinnerWrap {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.spinner {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(201,168,76,0.3);
+  border-top-color: v.$color-gold;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.checkIcon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: v.$color-gold;
+  svg { width: 100%; height: 100%; }
+}
+
+.title {
+  font-family: v.$font-arabic;
+  font-size: 1rem;
+  font-weight: 700;
+  color: v.$color-gold-light;
+  direction: rtl;
+}
+
+.filename {
+  font-family: v.$font-ui;
+  font-size: 0.75rem;
+  color: v.$color-gold;
+  opacity: 0.6;
+  direction: ltr;
+  margin-top: 2px;
+}
+
+.cancelBtn {
+  flex-shrink: 0;
+  font-family: v.$font-arabic;
+  font-size: 0.8rem;
+  padding: v.$space-2 v.$space-4;
+  background: transparent;
+  border: 1px solid v.$color-gold;
+  color: v.$color-gold;
+  border-radius: v.$radius-md;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity v.$transition-fast, background v.$transition-fast;
+
+  &:hover { opacity: 1; background: rgba(201,168,76,0.1); }
+}
+
+// ─── Progress bar ─────────────────────────────────────────────────────────────
+.progressTrack {
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: v.$color-gold;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+
+  &.complete { background: #5ec98e; }
+}
+
+// ─── Page dots ────────────────────────────────────────────────────────────────
+.pageDots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  direction: rtl;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background v.$transition-fast;
+
+  &.dotDone        { background: #5ec98e; }
+  &.dotProcessing  { background: v.$color-gold; animation: pulse 1s ease-in-out infinite; }
+  &.dotError       { background: #e07070; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+.stats {
+  display: flex;
+  align-items: center;
+  gap: v.$space-3;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: v.$space-1;
+}
+
+.statValue {
+  font-family: v.$font-display;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: v.$color-gold;
+}
+
+.statLabel {
+  font-family: v.$font-arabic;
+  font-size: 0.75rem;
+  color: v.$color-gold;
+  opacity: 0.6;
+}
+
+.statDivider {
+  width: 1px;
+  height: 20px;
+  background: rgba(201,168,76,0.25);
+}
+
+.statError .statValue { color: #e07070; }

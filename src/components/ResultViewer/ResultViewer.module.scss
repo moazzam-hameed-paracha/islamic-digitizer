@@ -1,0 +1,324 @@
+// src/components/ResultViewer/ResultViewer.module.scss
+@use '../../styles/variables' as v;
+@use "sass:color";
+
+// ─── Wrapper ──────────────────────────────────────────────────────────────────
+.wrapper {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	background: v.$color-surface;
+	border: 1px solid v.$color-border;
+	border-radius: v.$radius-lg;
+	overflow: hidden;
+	box-shadow: v.$shadow-sm;
+}
+
+// ─── Toolbar ──────────────────────────────────────────────────────────────────
+.toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: v.$space-3;
+	padding: v.$space-3 v.$space-4;
+	background: v.$color-surface-2;
+	border-bottom: 1px solid v.$color-border;
+	flex-wrap: wrap;
+}
+
+.tabs {
+	display: flex;
+	gap: 2px;
+	background: v.$color-border;
+	border-radius: v.$radius-md;
+	padding: 2px;
+}
+
+.tab {
+	font-family: v.$font-arabic;
+	font-size: 0.8rem;
+	padding: v.$space-1 v.$space-3;
+	background: transparent;
+	border: none;
+	border-radius: calc(#{v.$radius-md} - 2px);
+	cursor: pointer;
+	color: v.$color-muted;
+	transition:
+		background v.$transition-fast,
+		color v.$transition-fast;
+	white-space: nowrap;
+
+	&:hover {
+		color: v.$color-ink;
+	}
+
+	&.activeTab {
+		background: v.$color-surface;
+		color: v.$color-teal;
+		font-weight: 700;
+		box-shadow: v.$shadow-sm;
+	}
+}
+
+.toolbarRight {
+	display: flex;
+	align-items: center;
+	gap: v.$space-2;
+	flex-wrap: wrap;
+}
+
+// ─── Font size controls ───────────────────────────────────────────────────────
+.fontSizeGroup {
+	display: flex;
+	gap: 2px;
+	background: v.$color-border;
+	border-radius: v.$radius-sm;
+	padding: 2px;
+}
+
+.fontSizeBtn {
+	width: 26px;
+	height: 22px;
+	background: transparent;
+	border: none;
+	border-radius: 3px;
+	cursor: pointer;
+	color: v.$color-muted;
+	font-family: v.$font-arabic;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition:
+		background v.$transition-fast,
+		color v.$transition-fast;
+
+	&:nth-child(1) {
+		font-size: 0.7rem;
+	}
+	&:nth-child(2) {
+		font-size: 0.9rem;
+	}
+	&:nth-child(3) {
+		font-size: 1.1rem;
+	}
+
+	&.activeFontSize {
+		background: v.$color-surface;
+		color: v.$color-teal;
+		box-shadow: v.$shadow-sm;
+	}
+}
+
+// ─── Badges / chips ───────────────────────────────────────────────────────────
+.badge {
+	font-family: v.$font-ui;
+	font-size: 0.65rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	padding: 2px v.$space-2;
+	border-radius: v.$radius-sm;
+
+	&.badgeHigh {
+		background: color.mix(#5ec98e, #fff, 15%);
+		color: color.adjust(#5ec98e, $lightness: -30%);
+	}
+	&.badgeMedium {
+		background: color.mix(#c9a84c, #fff, 15%);
+		color: color.adjust(#c9a84c, $lightness: -30%);
+	}
+	&.badgeLow {
+		background: color.mix(#e07070, #fff, 15%);
+		color: color.adjust(#e07070, $lightness: -30%);
+	}
+}
+
+.chip {
+	font-family: v.$font-arabic;
+	font-size: 0.7rem;
+	padding: 2px v.$space-2;
+	background: color.mix(#1a4a3a, #faf3e4, 8%);
+	color: v.$color-teal;
+	border: 1px solid color.mix(#1a4a3a, #faf3e4, 18%);
+	border-radius: v.$radius-sm;
+}
+
+// ─── Copy button ──────────────────────────────────────────────────────────────
+.copyBtn {
+	display: flex;
+	align-items: center;
+	gap: v.$space-1;
+	font-family: v.$font-arabic;
+	font-size: 0.8rem;
+	padding: v.$space-1 v.$space-3;
+	background: v.$color-teal;
+	color: v.$color-gold-light;
+	border: none;
+	border-radius: v.$radius-md;
+	cursor: pointer;
+	transition:
+		background v.$transition-fast,
+		opacity v.$transition-fast;
+
+	svg {
+		width: 14px;
+		height: 14px;
+		flex-shrink: 0;
+	}
+
+	&:hover:not(:disabled) {
+		background: v.$color-teal-light;
+	}
+	&:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+}
+
+// ─── Content area ─────────────────────────────────────────────────────────────
+.content {
+	flex: 1;
+	display: grid;
+	overflow: hidden;
+	min-height: 0;
+
+	&.splitView {
+		grid-template-columns: 1fr 1fr;
+
+		@media (max-width: v.$bp-md) {
+			grid-template-columns: 1fr;
+			grid-template-rows: 1fr 1fr;
+		}
+	}
+
+	&.textOnly {
+		grid-template-columns: 1fr;
+	}
+	&.imageOnly {
+		grid-template-columns: 1fr;
+	}
+}
+
+// ─── Image panel ──────────────────────────────────────────────────────────────
+.imagePanel {
+	display: flex;
+	flex-direction: column;
+	border-left: 1px solid v.$color-border;
+	overflow: hidden;
+}
+
+.panelLabel {
+	font-family: v.$font-display;
+	font-size: 0.65rem;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: v.$color-muted;
+	padding: v.$space-2 v.$space-4;
+	border-bottom: 1px solid v.$color-border;
+	background: v.$color-surface-2;
+	direction: rtl;
+}
+
+.pageImage {
+	flex: 1;
+	object-fit: contain;
+	overflow: auto;
+	width: 100%;
+	display: block;
+	background: #f8f8f8;
+}
+
+// ─── Text panel ───────────────────────────────────────────────────────────────
+.textPanel {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	min-height: 0;
+}
+
+.arabicText {
+	flex: 1;
+	overflow-y: auto;
+	padding: v.$space-6;
+	font-family: v.$font-arabic;
+	color: v.$color-ink;
+	line-height: 2.2;
+	direction: rtl;
+	text-align: right;
+	white-space: pre-wrap;
+	word-break: break-word;
+
+	&.fontSm {
+		font-size: 1rem;
+	}
+	&.fontMd {
+		font-size: 1.25rem;
+	}
+	&.fontLg {
+		font-size: 1.6rem;
+	}
+}
+
+.emptyText {
+	color: v.$color-muted;
+	font-size: 0.9rem;
+	font-style: italic;
+}
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+.footer {
+	display: flex;
+	justify-content: space-between;
+	padding: v.$space-2 v.$space-4;
+	background: v.$color-surface-2;
+	border-top: 1px solid v.$color-border;
+	font-family: v.$font-ui;
+	font-size: 0.7rem;
+	color: v.$color-muted;
+}
+
+// ─── Placeholder states ───────────────────────────────────────────────────────
+.placeholder {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: v.$space-3;
+	padding: v.$space-8;
+	text-align: center;
+	color: v.$color-muted;
+	font-family: v.$font-arabic;
+	font-size: 1rem;
+	min-height: 300px;
+	direction: rtl;
+}
+
+.placeholderError {
+	color: v.$color-crimson;
+}
+
+.placeholderIcon {
+	font-size: 2rem;
+}
+
+.placeholderSub {
+	font-size: 0.8rem;
+	opacity: 0.7;
+	font-family: v.$font-ui;
+	direction: ltr;
+}
+
+.loadingRing {
+	width: 48px;
+	height: 48px;
+	border: 3px solid v.$color-border;
+	border-top-color: v.$color-teal;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

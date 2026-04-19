@@ -1,0 +1,245 @@
+// src/app/page.module.scss
+@use '../styles/variables' as v;
+
+// ─── App shell ────────────────────────────────────────────────────────────────
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: v.$space-7 v.$space-6;
+
+  @media (max-width: v.$bp-md) {
+    padding: v.$space-5 v.$space-4;
+  }
+}
+
+// ─── Hero / Upload section ────────────────────────────────────────────────────
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: v.$space-7;
+  text-align: center;
+  animation: fadeUp 0.6s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ornament {
+  color: v.$color-gold;
+  opacity: 0.25;
+  width: 180px;
+  height: 180px;
+
+  svg { width: 100%; height: 100%; }
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: v.$space-3;
+}
+
+.heroTitle {
+  font-family: v.$font-arabic;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 700;
+  color: v.$color-teal;
+  line-height: 1;
+  direction: rtl;
+}
+
+.heroSubtitle {
+  font-family: v.$font-display;
+  font-size: clamp(0.8rem, 2vw, 1.1rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: v.$color-gold;
+  direction: ltr;
+}
+
+.heroDesc {
+  max-width: 540px;
+  font-family: v.$font-arabic;
+  font-size: 1.05rem;
+  color: v.$color-muted;
+  line-height: 1.9;
+  direction: rtl;
+}
+
+.uploaderWrap {
+  width: 100%;
+  max-width: 640px;
+}
+
+// ─── Features row ─────────────────────────────────────────────────────────────
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: v.$space-4;
+  width: 100%;
+  max-width: 800px;
+
+  @media (max-width: v.$bp-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.featureCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: v.$space-2;
+  padding: v.$space-5 v.$space-4;
+  background: v.$color-surface-2;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-lg;
+  text-align: center;
+  direction: rtl;
+  transition: box-shadow v.$transition-base, transform v.$transition-base;
+
+  &:hover {
+    box-shadow: v.$shadow-md;
+    transform: translateY(-3px);
+  }
+}
+
+.featureIcon {
+  font-size: 1.2rem;
+  color: v.$color-gold;
+}
+
+.featureTitle {
+  font-family: v.$font-arabic;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: v.$color-teal;
+}
+
+.featureDesc {
+  font-family: v.$font-arabic;
+  font-size: 0.8rem;
+  color: v.$color-muted;
+  line-height: 1.6;
+}
+
+// ─── Workspace ────────────────────────────────────────────────────────────────
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-5;
+  animation: fadeUp 0.4s ease both;
+}
+
+.workspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.$space-4;
+  flex-wrap: wrap;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: v.$space-3;
+}
+
+.fileBadge {
+  font-family: v.$font-ui;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: v.$color-teal;
+  color: v.$color-gold;
+  padding: 3px v.$space-3;
+  border-radius: v.$radius-sm;
+}
+
+.fileName {
+  font-family: v.$font-ui;
+  font-size: 0.9rem;
+  color: v.$color-muted;
+  direction: ltr;
+}
+
+.newFileBtn {
+  font-family: v.$font-arabic;
+  font-size: 0.8rem;
+  color: v.$color-muted;
+  background: transparent;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-md;
+  padding: v.$space-2 v.$space-4;
+  cursor: pointer;
+  transition: color v.$transition-fast, border-color v.$transition-fast;
+
+  &:hover { color: v.$color-crimson; border-color: v.$color-crimson; }
+}
+
+// ─── 3-column grid ────────────────────────────────────────────────────────────
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: 140px 1fr 260px;
+  gap: v.$space-4;
+  min-height: 600px;
+  align-items: start;
+
+  @media (max-width: v.$bp-lg) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebarLeft,
+.sidebarRight {
+  position: sticky;
+  top: 80px;
+}
+
+.viewerWrap {
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.noPage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: v.$color-muted;
+  font-family: v.$font-arabic;
+  font-size: 1rem;
+  direction: rtl;
+  border: 1px dashed v.$color-border;
+  border-radius: v.$radius-lg;
+}
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+.footer {
+  padding: v.$space-5 v.$space-6;
+  text-align: center;
+  font-family: v.$font-ui;
+  font-size: 0.75rem;
+  color: v.$color-muted;
+  border-top: 1px solid v.$color-border;
+  background: v.$color-surface-2;
+
+  a {
+    color: v.$color-teal;
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+}

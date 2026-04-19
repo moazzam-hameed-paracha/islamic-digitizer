@@ -1,0 +1,181 @@
+// src/components/FileUploader/FileUploader.module.scss
+@use '../../styles/variables' as v;
+@use "sass:color";
+
+.wrapper {
+	position: relative;
+	padding: v.$space-3;
+}
+
+// ─── Geometric Corner Ornaments ───────────────────────────────────────────────
+@mixin corner($top, $right, $bottom, $left, $rotateX, $rotateY) {
+	position: absolute;
+	width: 28px;
+	height: 28px;
+	border-color: v.$color-gold;
+	border-style: solid;
+	border-width: 0;
+	opacity: 0.5;
+	@if $top != null {
+		top: $top;
+		border-top-width: 1.5px;
+	}
+	@if $right != null {
+		right: $right;
+		border-right-width: 1.5px;
+	}
+	@if $bottom != null {
+		bottom: $bottom;
+		border-bottom-width: 1.5px;
+	}
+	@if $left != null {
+		left: $left;
+		border-left-width: 1.5px;
+	}
+}
+
+.cornerTL {
+	@include corner(0, null, null, 0, 1, 1);
+}
+.cornerTR {
+	@include corner(0, 0, null, null, -1, 1);
+}
+.cornerBL {
+	@include corner(null, null, 0, 0, 1, -1);
+}
+.cornerBR {
+	@include corner(null, 0, 0, null, -1, -1);
+}
+
+// ─── Dropzone ─────────────────────────────────────────────────────────────────
+.dropzone {
+	border: 1.5px dashed v.$color-border;
+	border-radius: v.$radius-lg;
+	background: v.$color-surface;
+	padding: v.$space-8 v.$space-6;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: v.$space-5;
+	cursor: pointer;
+	transition:
+		background v.$transition-base,
+		border-color v.$transition-base,
+		transform v.$transition-base;
+	text-align: center;
+	outline: none;
+
+	&:hover,
+	&:focus-visible {
+		border-color: v.$color-gold;
+		background: color.adjust(#faf3e4, $lightness: 2%);
+		transform: translateY(-2px);
+
+		.iconWrap {
+			color: v.$color-gold;
+			transform: scale(1.05);
+		}
+	}
+
+	&.dragging {
+		border-color: v.$color-teal;
+		background: color.mix(#1a4a3a, #faf3e4, 8%);
+		border-style: solid;
+		transform: translateY(-4px);
+		box-shadow: v.$shadow-md;
+
+		.iconWrap {
+			color: v.$color-teal;
+			transform: scale(1.1);
+		}
+	}
+
+	&.disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		transform: none !important;
+	}
+}
+
+.hiddenInput {
+	display: none;
+}
+
+// ─── Icon ─────────────────────────────────────────────────────────────────────
+.iconWrap {
+	color: v.$color-border;
+	width: 64px;
+	height: 64px;
+	transition:
+		color v.$transition-base,
+		transform v.$transition-base;
+
+	svg {
+		width: 100%;
+		height: 100%;
+	}
+}
+
+// ─── Text ─────────────────────────────────────────────────────────────────────
+.textGroup {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: v.$space-2;
+}
+
+.primaryText {
+	font-family: v.$font-arabic;
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: v.$color-ink;
+	direction: rtl;
+}
+
+.secondaryText {
+	font-family: v.$font-arabic;
+	font-size: 1rem;
+	color: v.$color-muted;
+	direction: rtl;
+}
+
+.formats {
+	display: flex;
+	gap: v.$space-2;
+	margin-top: v.$space-2;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.formatBadge {
+	font-family: v.$font-ui;
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: v.$color-teal;
+	background: color.mix(#1a4a3a, #faf3e4, 10%);
+	border: 1px solid color.mix(#1a4a3a, #faf3e4, 20%);
+	padding: 2px v.$space-2;
+	border-radius: v.$radius-sm;
+}
+
+// ─── Footer text ──────────────────────────────────────────────────────────────
+.error {
+	margin-top: v.$space-3;
+	color: v.$color-crimson;
+	font-family: v.$font-arabic;
+	font-size: 0.9rem;
+	text-align: center;
+	direction: rtl;
+}
+
+.hint {
+	margin-top: v.$space-3;
+	color: v.$color-muted;
+	font-family: v.$font-arabic;
+	font-size: 0.8rem;
+	text-align: center;
+	direction: rtl;
+	opacity: 0.8;
+}
