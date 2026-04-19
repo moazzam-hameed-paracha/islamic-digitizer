@@ -114,7 +114,6 @@ async def digitize_image(payload: OCRRequest):
             return_tensors="pt",
         ).to(device)
 
-        BAR_WIDTH = 30
         streamer = TextIteratorStreamer(processor.tokenizer, skip_special_tokens=True, skip_prompt=True)
         generation_error: Exception | None = None
         generation_start = time.time()
@@ -140,16 +139,12 @@ async def digitize_image(payload: OCRRequest):
             output_tokens.append(token)
             token_count += 1
             elapsed_generation = time.time() - generation_start
-            ratio = min(token_count / MAX_TOKENS, 0.99)
-            filled = int(BAR_WIDTH * ratio)
-            bar = "█" * filled + "░" * (BAR_WIDTH - filled)
-            pct = int(ratio * 100)
+            tok_per_sec = token_count / elapsed_generation if elapsed_generation > 0 else 0.0
             print(
-                f"\r[{request_id}] |{bar}| {pct:>3}%  {token_count}/{MAX_TOKENS} tokens  {elapsed_generation:.1f}s",
+                f"\r[{request_id}]  generating  {token_count} tokens  {tok_per_sec:.1f} tok/s  {elapsed_generation:.1f}s elapsed",
                 end="",
                 flush=True,
             )
-            # yield control back to the event loop periodically
             if token_count % 10 == 0:
                 await asyncio.sleep(0)
 
@@ -159,9 +154,9 @@ async def digitize_image(payload: OCRRequest):
             raise generation_error
 
         generation_duration = time.time() - generation_start
-        bar = "█" * BAR_WIDTH
+        tok_per_sec = token_count / generation_duration if generation_duration > 0 else 0.0
         print(
-            f"\r[{request_id}] |{bar}| 100%  {token_count}/{token_count} tokens  {generation_duration:.1f}s  ✓",
+            f"\r[{request_id}]  done        {token_count} tokens  {tok_per_sec:.1f} tok/s  {generation_duration:.1f}s  ✓",
             flush=True,
         )
         output_text = "".join(output_tokens)
