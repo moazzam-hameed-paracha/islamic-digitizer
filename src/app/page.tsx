@@ -2,12 +2,12 @@
 'use client';
 
 import { useRef } from 'react';
-import Header from '@/components/Header/Header';
-import FileUploader from '@/components/FileUploader/FileUploader';
-import ProcessingStatus from '@/components/ProcessingStatus/ProcessingStatus';
-import PageNavigator from '@/components/PageNavigator/PageNavigator';
-import ResultViewer from '@/components/ResultViewer/ResultViewer';
-import ExportPanel from '@/components/ExportPanel/ExportPanel';
+import { Header } from '@/components/Header';
+import { FileUploader } from '@/components/FileUploader';
+import { ProcessingStatus } from '@/components/ProcessingStatus';
+import { PageNavigator } from '@/components/PageNavigator';
+import { ResultViewer } from '@/components/ResultViewer';
+import { ExportPanel } from '@/components/ExportPanel';
 import { useDigitizer } from '@/hooks/useDigitizer';
 import styles from './page.module.scss';
 
@@ -160,7 +160,9 @@ export default function Home() {
 										onCopy={() => copyPageText(selectedPage)}
 									/>
 								) : (
-									<div className={styles.noPage}>Select a page from the list</div>
+									<div className={styles.noPage}>
+										Select a page from the list
+									</div>
 								)}
 							</div>
 

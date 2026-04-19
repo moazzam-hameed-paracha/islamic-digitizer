@@ -1,12 +1,16 @@
 import base64
+import asyncio
+import io
 import os
 import uuid
 import time
 import torch
+from threading import Thread
+from PIL import Image
 from typing import Any, cast
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from transformers import Qwen2VLForConditionalGeneration, AutoProcessor, TextIteratorStreamer
 from qwen_vl_utils import process_vision_info
 
 app = FastAPI(title="Qari OCR API")
@@ -42,6 +46,12 @@ PROMPT = (
     "Do not hallucinate."
 )
 
+
+def log_progress(request_id: str, start_time: float, percent: int, stage: str) -> None:
+    elapsed = time.time() - start_time
+    print(f"[{request_id}] {percent:>3}% | {stage} | {elapsed:.2f}s", flush=True)
+
+
 # ---------------------------------------------------------------------------
 # API Endpoint
 # ---------------------------------------------------------------------------
@@ -63,13 +73,22 @@ async def digitize_image(payload: OCRRequest):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Base64 string.")
 
-    # 2. Save to temporary file (Required for file:// URI)
+    # 2. Convert to monochrome (grayscale → back to RGB so model pipeline stays consistent)
+    try:
+        img = Image.open(io.BytesIO(image_data)).convert("L").convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        image_data = buf.getvalue()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Image preprocessing failed: {e}")
+
+    # 3. Save to temporary file (Required for file:// URI)
     tmp_path = f"temp_{request_id}.png"
     with open(tmp_path, "wb") as f:
         f.write(image_data)
 
     try:
-        print(f"--- [NEW REQUEST: {request_id}] ---")
+        print(f"--- [NEW REQUEST: {request_id}] ---", flush=True)
         
         messages = [
             {
@@ -95,22 +114,57 @@ async def digitize_image(payload: OCRRequest):
             return_tensors="pt",
         ).to(device)
 
-        generated_ids = cast(Any, model).generate(
-            **inputs,
-            max_new_tokens=MAX_TOKENS,
-            use_cache=True,
-        )
+        BAR_WIDTH = 30
+        streamer = TextIteratorStreamer(processor.tokenizer, skip_special_tokens=True, skip_prompt=True)
+        generation_error: Exception | None = None
+        generation_start = time.time()
 
-        generated_ids_trimmed = [
-            out_ids[len(in_ids) :]
-            for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
-        ]
-        
-        output_text = processor.batch_decode(
-            generated_ids_trimmed,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=False,
-        )[0]
+        def run_generation() -> None:
+            nonlocal generation_error
+            try:
+                cast(Any, model).generate(
+                    **inputs,
+                    max_new_tokens=MAX_TOKENS,
+                    use_cache=True,
+                    streamer=streamer,
+                )
+            except Exception as err:
+                generation_error = err
+
+        generation_thread = Thread(target=run_generation, daemon=True)
+        generation_thread.start()
+
+        output_tokens: list[str] = []
+        token_count = 0
+        for token in streamer:
+            output_tokens.append(token)
+            token_count += 1
+            elapsed_generation = time.time() - generation_start
+            ratio = min(token_count / MAX_TOKENS, 0.99)
+            filled = int(BAR_WIDTH * ratio)
+            bar = "█" * filled + "░" * (BAR_WIDTH - filled)
+            pct = int(ratio * 100)
+            print(
+                f"\r[{request_id}] |{bar}| {pct:>3}%  {token_count}/{MAX_TOKENS} tokens  {elapsed_generation:.1f}s",
+                end="",
+                flush=True,
+            )
+            # yield control back to the event loop periodically
+            if token_count % 10 == 0:
+                await asyncio.sleep(0)
+
+        generation_thread.join()
+        if generation_error is not None:
+            print(flush=True)
+            raise generation_error
+
+        generation_duration = time.time() - generation_start
+        bar = "█" * BAR_WIDTH
+        print(
+            f"\r[{request_id}] |{bar}| 100%  {token_count}/{token_count} tokens  {generation_duration:.1f}s  ✓",
+            flush=True,
+        )
+        output_text = "".join(output_tokens)
 
         duration = time.time() - start_time
         return {
@@ -120,7 +174,7 @@ async def digitize_image(payload: OCRRequest):
         }
 
     except Exception as e:
-        print(f"[CRITICAL ERROR] {str(e)}")
+        print(f"[CRITICAL ERROR: {request_id}] {str(e)}", flush=True)
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:

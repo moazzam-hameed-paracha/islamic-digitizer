@@ -1,11 +1,21 @@
 // src/components/Header/Header.tsx
 'use client';
 
+import { useEffect, useState } from 'react';
 import styles from './Header.module.scss';
 
 export default function Header() {
+	const [isScrolled, setIsScrolled] = useState(false);
+
+	useEffect(() => {
+		const onScroll = () => setIsScrolled(window.scrollY > 8);
+		onScroll();
+		window.addEventListener('scroll', onScroll, { passive: true });
+		return () => window.removeEventListener('scroll', onScroll);
+	}, []);
+
 	return (
-		<header className={styles.header}>
+		<header className={`${styles.header} ${isScrolled ? styles.scrolled : ''}`}>
 			<div className={styles.ornamentTop} aria-hidden='true'>
 				<svg
 					viewBox='0 0 800 24'
@@ -45,9 +55,9 @@ export default function Header() {
 				<div className={styles.logoGroup}>
 					<span className={styles.arabicTitle}>مرقمن</span>
 					<div className={styles.englishGroup}>
-						<span className={styles.englishTitle}>
+						{/* <span className={styles.englishTitle}>
 							Islamic Manuscript Digitizer
-						</span>
+						</span> */}
 						{/* <span className={styles.tagline}>
 							Powered by Qari-OCR-0.1-VL-2B · Local Arabic Vision Model
 						</span> */}
