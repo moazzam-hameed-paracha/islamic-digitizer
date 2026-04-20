@@ -20,6 +20,8 @@ export default function Home() {
 		cancelJob,
 		resetJob,
 		removePage,
+		reorderPages,
+		insertPages,
 		exportAllText,
 		copyPageText,
 	} = useDigitizer();
@@ -37,19 +39,19 @@ export default function Home() {
 
 	const showResults = !!job;
 	const isComplete = job?.status === 'complete';
+	const isProcessing = job?.status === 'processing';
 
 	return (
 		<div className={styles.app}>
 			<Header />
 
 			<main className={styles.main}>
-				{/* ── Hero / Upload ─────────────────────────────────────────────── */}
+				{/* ── Hero / Upload ─────────────────────────────────────────── */}
 				{!job && (
 					<section className={styles.hero}>
 						{/* Geometric Islamic ornament */}
 						<div className={styles.ornament} aria-hidden='true'>
 							<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'>
-								{/* 8-pointed star */}
 								<g
 									transform='translate(100,100)'
 									fill='none'
@@ -69,7 +71,9 @@ export default function Home() {
 						</div>
 
 						<div className={styles.heroText}>
-							<h1 className={styles.heroTitle}>مرقمن</h1>
+							<h1 className={styles.heroTitle} dir='rtl'>
+								مرقمن
+							</h1>
 							<p className={styles.heroSubtitle}>
 								Islamic Manuscript Digitizer
 							</p>
@@ -113,43 +117,21 @@ export default function Home() {
 					</section>
 				)}
 
-				{/* ── Results workspace ──────────────────────────────────────────── */}
+				{/* ── Results workspace ──────────────────────────────────────── */}
 				{showResults && (
 					<section className={styles.workspace} ref={resultRef}>
-						{/* File header bar */}
-						<div className={styles.workspaceHeader}>
-							<div className={styles.fileInfo}>
-								<span className={styles.fileBadge}>
-									{job.file.type === 'pdf'
-										? 'PDF'
-										: job.sourceFiles
-											? `${job.pages.length} images`
-											: 'image'}
-								</span>
-								<span className={styles.fileName}>{job.file.name}</span>
-							</div>
-
-							{!isComplete && (
-								<button className={styles.newFileBtn} onClick={resetJob}>
-									✕ Cancel and upload another file
-								</button>
-							)}
-						</div>
-
 						{/* Processing status bar */}
 						<ProcessingStatus job={job} onCancel={cancelJob} />
 
-						{/* Main 3-column layout */}
+						{/* Main layout */}
 						<div className={styles.workspaceGrid}>
-							{/* Left col: page navigator */}
-							{job.totalPages > 1 && (
-								<aside className={styles.sidebarLeft}>
-									<PageNavigator
-										pages={job.pages}
-										selectedPage={selectedPage}
-										onSelectPage={setSelectedPage}
-										onRemovePage={removePage}
-										isProcessing={job.status === 'processing'}
+							{/* Right col: export panel */}
+							{isComplete && (
+								<aside className={styles.sidebarRight}>
+									<ExportPanel
+										job={job}
+										onExportAll={exportAllText}
+										onReset={resetJob}
 									/>
 								</aside>
 							)}
@@ -172,13 +154,17 @@ export default function Home() {
 								)}
 							</div>
 
-							{/* Right col: export panel (shown when at least 1 page done) */}
-							{isComplete && (
-								<aside className={styles.sidebarRight}>
-									<ExportPanel
-										job={job}
-										onExportAll={exportAllText}
-										onReset={resetJob}
+							{/* Left col: page navigator */}
+							{job.totalPages > 1 && (
+								<aside className={styles.sidebarLeft}>
+									<PageNavigator
+										pages={job.pages}
+										selectedPage={selectedPage}
+										onSelectPage={setSelectedPage}
+										onRemovePage={removePage}
+										onReorderPage={reorderPages}
+										onInsertPages={insertPages}
+										isProcessing={isProcessing}
 									/>
 								</aside>
 							)}
@@ -187,7 +173,7 @@ export default function Home() {
 				)}
 			</main>
 
-			<footer className={styles.footer} dir='ltr'>
+			<footer className={styles.footer}>
 				<p>
 					Powered by{' '}
 					<a

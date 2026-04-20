@@ -47,7 +47,30 @@ export default function ProcessingStatus({
 	return (
 		<div className={styles.wrapper}>
 			<div className={styles.header}>
+				<div className={styles.headerRight}>
+					{isProcessing && (
+						<button className={styles.cancelBtn} onClick={onCancel}>
+							Stop
+						</button>
+					)}
+					{isProcessing && (
+						<span className={styles.elapsed} aria-live='polite'>
+							⏱ {formatElapsed(elapsed)}
+						</span>
+					)}
+				</div>
 				<div className={styles.titleGroup}>
+					<div>
+						<p className={styles.title}>
+							{isProcessing
+								? `Processing page ${job.currentPage} of ${job.totalPages}`
+								: isComplete
+									? 'Digital transformation is complete'
+									: 'The transfer has stopped'}
+						</p>
+						<p className={styles.filename}>{job.file.name}</p>
+					</div>
+
 					{isProcessing && (
 						<span className={styles.spinnerWrap} aria-hidden='true'>
 							<span className={styles.spinner} />
@@ -72,29 +95,6 @@ export default function ProcessingStatus({
 								/>
 							</svg>
 						</span>
-					)}
-					<div>
-						<p className={styles.title}>
-							{isProcessing
-								? `Processing page ${job.currentPage} of ${job.totalPages}`
-								: isComplete
-									? 'Digital transformation is complete'
-									: 'The transfer has stopped'}
-						</p>
-						<p className={styles.filename}>{job.file.name}</p>
-					</div>
-				</div>
-
-				<div className={styles.headerRight}>
-					{isProcessing && (
-						<span className={styles.elapsed} aria-live='polite'>
-							⏱ {formatElapsed(elapsed)}
-						</span>
-					)}
-					{isProcessing && (
-						<button className={styles.cancelBtn} onClick={onCancel}>
-							Stop
-						</button>
 					)}
 				</div>
 			</div>

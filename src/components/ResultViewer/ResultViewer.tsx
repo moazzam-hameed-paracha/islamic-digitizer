@@ -13,16 +13,11 @@ interface ResultViewerProps {
 
 type Tab = 'text' | 'image' | 'split';
 
-const CONFIDENCE_LABEL: Record<string, string> = {
-	high: 'High Confidence',
-	medium: 'Medium Confidence',
-	low: 'Low Confidence',
-};
-
 export default function ResultViewer({ page, onCopy }: ResultViewerProps) {
 	const [tab, setTab] = useState<Tab>('split');
 	const [copied, setCopied] = useState(false);
 	const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');
+	const [lightboxOpen, setLightboxOpen] = useState(false);
 
 	const handleCopy = async () => {
 		await onCopy();
@@ -69,22 +64,8 @@ export default function ResultViewer({ page, onCopy }: ResultViewerProps) {
 
 	return (
 		<div className={styles.wrapper}>
-			{/* Toolbar */}
+			{/* ── Toolbar ───────────────────────────────────────────────────── */}
 			<div className={styles.toolbar}>
-				{/* Tabs */}
-				<div className={styles.tabs} dir='ltr' role='tablist'>
-					{(['split', 'text', 'image'] as Tab[]).map((t) => (
-						<button
-							key={t}
-							role='tab'
-							aria-selected={tab === t}
-							className={clsx(styles.tab, { [styles.activeTab]: tab === t })}
-							onClick={() => setTab(t)}>
-							{t === 'split' ? 'Split View' : t === 'text' ? 'Text' : 'Image'}
-						</button>
-					))}
-				</div>
-
 				<div className={styles.toolbarRight}>
 					{/* Font size */}
 					<div className={styles.fontSizeGroup} aria-label='Font Size'>
@@ -100,26 +81,6 @@ export default function ResultViewer({ page, onCopy }: ResultViewerProps) {
 							</button>
 						))}
 					</div>
-
-					{/* Confidence badge */}
-					{page.confidence && (
-						<span
-							className={clsx(styles.badge, {
-								[styles.badgeHigh]: page.confidence === 'high',
-								[styles.badgeMedium]: page.confidence === 'medium',
-								[styles.badgeLow]: page.confidence === 'low',
-							})}>
-							{CONFIDENCE_LABEL[page.confidence]}
-						</span>
-					)}
-
-					{/* Metadata chips */}
-					{page.metadata?.hasDiacritics && (
-						<span className={styles.chip}>Diacritics</span>
-					)}
-					{page.metadata?.hasHeadings && (
-						<span className={styles.chip}>Headings</span>
-					)}
 
 					{/* Copy button */}
 					<button
@@ -162,32 +123,35 @@ export default function ResultViewer({ page, onCopy }: ResultViewerProps) {
 						)}
 					</button>
 				</div>
+
+				{/* Tabs */}
+				<div className={styles.tabs} role='tablist'>
+					{(['split', 'text', 'image'] as Tab[]).map((t) => (
+						<button
+							key={t}
+							role='tab'
+							aria-selected={tab === t}
+							className={clsx(styles.tab, { [styles.activeTab]: tab === t })}
+							onClick={() => setTab(t)}>
+							{t === 'split' ? 'Split View' : t === 'text' ? 'Text' : 'Image'}
+						</button>
+					))}
+				</div>
 			</div>
 
-			{/* Content */}
+			{/* ── Content ───────────────────────────────────────────────────── */}
 			<div
 				className={clsx(styles.content, {
 					[styles.splitView]: tab === 'split',
 					[styles.textOnly]: tab === 'text',
 					[styles.imageOnly]: tab === 'image',
 				})}>
-				{/* Image panel */}
-				{(tab === 'image' || tab === 'split') && imageSrc && (
-					<div className={styles.imagePanel}>
-						<p className={styles.panelLabel}>Original Image</p>
-						{/* eslint-disable-next-line @next/next/no-img-element */}
-						<img
-							src={imageSrc}
-							alt={`Page ${page.pageNumber}`}
-							className={styles.pageImage}
-						/>
-					</div>
-				)}
-
 				{/* Text panel */}
 				{(tab === 'text' || tab === 'split') && (
 					<div className={styles.textPanel}>
-						<p className={styles.panelLabel}>Extracted Text</p>
+						<div className={styles.imageLabelContainer}>
+							<p className={styles.panelLabel}>Extracted Text</p>
+						</div>
 						<div
 							className={clsx(styles.arabicText, {
 								[styles.fontSm]: fontSize === 'sm',
@@ -204,27 +168,73 @@ export default function ResultViewer({ page, onCopy }: ResultViewerProps) {
 						</div>
 					</div>
 				)}
+
+				{/* Image panel */}
+				{(tab === 'image' || tab === 'split') && imageSrc && (
+					<div className={styles.imagePanel}>
+						<div className={styles.imageLabelContainer}>
+							<p className={styles.panelLabel}>Original Image</p>
+							<button
+								className={styles.expandBtn}
+								onClick={() => setLightboxOpen(true)}
+								title='Expand image'
+								aria-label='Expand image to full screen'>
+								⛶
+							</button>
+						</div>
+
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img
+							src={imageSrc}
+							alt={`Page ${page.pageNumber}`}
+							className={styles.pageImage}
+							onClick={() => setLightboxOpen(true)}
+							title='Click to expand'
+							style={{ cursor: 'zoom-in' }}
+						/>
+					</div>
+				)}
 			</div>
 
-			{/* Page footer */}
+			{/* ── Footer ────────────────────────────────────────────────────── */}
 			<div className={styles.footer}>
 				<span>Page {page.pageNumber}</span>
 				<span className={styles.footerMeta}>
-					{page.metadata && (
-						<span>
-							~{page.metadata.estimatedLines} lines · {page.arabicText.length} chars
-						</span>
-					)}
 					{page.tokenCount != null && page.maxTokens != null && (
 						<span className={styles.tokenBadge}>
 							{page.tokenCount}/{page.maxTokens} tokens
 						</span>
 					)}
-					{page.duration != null && (
-						<span>{page.duration.toFixed(1)}s</span>
-					)}
+					{page.duration != null && <span>{page.duration.toFixed(1)}s</span>}
 				</span>
 			</div>
+
+			{/* ── Lightbox ──────────────────────────────────────────────────── */}
+			{lightboxOpen && imageSrc && (
+				<div
+					className={styles.lightboxOverlay}
+					onClick={() => setLightboxOpen(false)}
+					role='dialog'
+					aria-modal='true'
+					aria-label='Image expanded view'>
+					<button
+						className={styles.lightboxClose}
+						onClick={() => setLightboxOpen(false)}
+						aria-label='Close expanded view'>
+						✕
+					</button>
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img
+						src={imageSrc}
+						alt={`Page ${page.pageNumber} — full size`}
+						className={styles.lightboxImage}
+						onClick={(e) => e.stopPropagation()}
+					/>
+					<p className={styles.lightboxCaption}>
+						Page {page.pageNumber} · Click outside to close
+					</p>
+				</div>
+			)}
 		</div>
 	);
 }

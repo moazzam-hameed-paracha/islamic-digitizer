@@ -3,298 +3,249 @@
 
 // ─── App shell ────────────────────────────────────────────────────────────────
 .app {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh; // use dynamic viewport height
-  overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	height: 100dvh;
+	overflow: hidden;
 }
 
 .main {
-  flex: 1;
-  min-height: 0; // critical: lets flex children shrink below content size
-  display: flex;
-  flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
 }
 
 // ─── Hero / Upload section ────────────────────────────────────────────────────
-// Hero is scroll-friendly on its own — sits in a scrollable wrapper
 .hero {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: v.$space-6;
-  text-align: center;
-  padding: v.$space-6 v.$space-6 v.$space-8;
-  animation: fadeUp 0.6s ease both;
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: v.$space-6;
+	text-align: center;
+	padding: v.$space-6 v.$space-6 v.$space-8;
+	animation: fadeUp 0.6s ease both;
 
-  @media (max-width: v.$bp-md) {
-    padding: v.$space-5 v.$space-4 v.$space-7;
-    gap: v.$space-5;
-  }
+	@media (max-width: v.$bp-md) {
+		padding: v.$space-5 v.$space-4 v.$space-7;
+		gap: v.$space-5;
+	}
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .ornament {
-  color: v.$color-gold;
-  opacity: 0.22;
-  width: 140px;
-  height: 140px;
-  flex-shrink: 0;
+	color: v.$color-gold;
+	opacity: 0.22;
+	width: 140px;
+	height: 140px;
+	flex-shrink: 0;
 
-  svg { width: 100%; height: 100%; }
+	svg {
+		width: 100%;
+		height: 100%;
+	}
 
-  @media (max-width: v.$bp-md) {
-    width: 100px;
-    height: 100px;
-  }
+	@media (max-width: v.$bp-md) {
+		width: 100px;
+		height: 100px;
+	}
 }
 
 .heroText {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: v.$space-3;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: v.$space-3;
 }
 
+// Arabic title: keeps its own RTL scope; no need for root-level RTL
 .heroTitle {
-  font-family: v.$font-arabic;
-  font-size: clamp(2.5rem, 7vw, 4.5rem);
-  font-weight: 700;
-  color: v.$color-teal;
-  line-height: 1;
-  direction: rtl;
+	font-family: v.$font-arabic;
+	font-size: clamp(2.5rem, 7vw, 4.5rem);
+	font-weight: 700;
+	color: v.$color-teal;
+	line-height: 1;
 }
 
 .heroSubtitle {
-  font-family: v.$font-display;
-  font-size: clamp(0.7rem, 1.8vw, 1rem);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: v.$color-gold;
-  direction: ltr;
+	font-family: v.$font-display;
+	font-size: clamp(0.7rem, 1.8vw, 1rem);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: v.$color-gold;
 }
 
 .heroDesc {
-  max-width: 520px;
-  font-family: v.$font-arabic;
-  font-size: 1rem;
-  color: v.$color-muted;
-  line-height: 1.9;
-  direction: rtl;
+	max-width: 520px;
+	font-family: v.$font-ui;
+	font-size: 1rem;
+	color: v.$color-muted;
+	line-height: 1.9;
 
-  @media (max-width: v.$bp-md) {
-    font-size: 0.9rem;
-  }
+	@media (max-width: v.$bp-md) {
+		font-size: 0.9rem;
+	}
 }
 
 .uploaderWrap {
-  width: 100%;
-  max-width: 600px;
+	width: 100%;
+	max-width: 600px;
 }
 
 // ─── Features row ─────────────────────────────────────────────────────────────
 .features {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: v.$space-3;
-  width: 100%;
-  max-width: 760px;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: v.$space-3;
+	width: 100%;
+	max-width: 760px;
 
-  @media (max-width: v.$bp-sm) {
-    grid-template-columns: 1fr;
-  }
+	@media (max-width: v.$bp-sm) {
+		grid-template-columns: 1fr;
+	}
 }
 
 .featureCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: v.$space-2;
-  padding: v.$space-4 v.$space-3;
-  background: v.$color-surface-2;
-  border: 1px solid v.$color-border;
-  border-radius: v.$radius-lg;
-  text-align: center;
-  direction: rtl;
-  transition: box-shadow v.$transition-base, transform v.$transition-base;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: v.$space-2;
+	padding: v.$space-4 v.$space-3;
+	background: v.$color-surface-2;
+	border: 1px solid v.$color-border;
+	border-radius: v.$radius-lg;
+	text-align: center;
+	transition:
+		box-shadow v.$transition-base,
+		transform v.$transition-base;
 
-  &:hover {
-    box-shadow: v.$shadow-md;
-    transform: translateY(-2px);
-  }
+	&:hover {
+		box-shadow: v.$shadow-md;
+		transform: translateY(-2px);
+	}
 }
 
 .featureIcon {
-  font-size: 1rem;
-  color: v.$color-gold;
+	font-size: 1rem;
+	color: v.$color-gold;
 }
 
 .featureTitle {
-  font-family: v.$font-arabic;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: v.$color-teal;
+	font-family: v.$font-ui;
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: v.$color-teal;
 }
 
 .featureDesc {
-  font-family: v.$font-arabic;
-  font-size: 0.75rem;
-  color: v.$color-muted;
-  line-height: 1.6;
+	font-family: v.$font-ui;
+	font-size: 0.75rem;
+	color: v.$color-muted;
+	line-height: 1.6;
 }
 
-// ─── Workspace — fills remaining viewport exactly ─────────────────────────────
+// ─── Workspace ────────────────────────────────────────────────────────────────
 .workspace {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: v.$space-3;
-  padding: v.$space-4 v.$space-5;
-  animation: fadeUp 0.4s ease both;
-  overflow: hidden; // the inner panels scroll independently
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	gap: v.$space-3;
+	padding: v.$space-4 v.$space-5;
+	animation: fadeUp 0.4s ease both;
+	overflow: hidden;
 
-  @media (max-width: v.$bp-md) {
-    padding: v.$space-3 v.$space-3;
-    gap: v.$space-2;
-  }
+	@media (max-width: v.$bp-md) {
+		padding: v.$space-3 v.$space-3;
+		gap: v.$space-2;
+	}
 }
 
-.workspaceHeader {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: v.$space-4;
-  flex-wrap: wrap;
-}
-
-.fileInfo {
-  display: flex;
-  align-items: center;
-  gap: v.$space-3;
-}
-
-.fileBadge {
-  font-family: v.$font-ui;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: v.$color-teal;
-  color: v.$color-gold;
-  padding: 2px v.$space-3;
-  border-radius: v.$radius-sm;
-}
-
-.fileName {
-  font-family: v.$font-ui;
-  font-size: 0.85rem;
-  color: v.$color-muted;
-  direction: ltr;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
-
-  @media (max-width: v.$bp-md) {
-    max-width: 160px;
-  }
-}
-
-.newFileBtn {
-  font-family: v.$font-arabic;
-  font-size: 0.8rem;
-  color: v.$color-muted;
-  background: transparent;
-  border: 1px solid v.$color-border;
-  border-radius: v.$radius-md;
-  padding: v.$space-2 v.$space-4;
-  cursor: pointer;
-  transition: color v.$transition-fast, border-color v.$transition-fast;
-  white-space: nowrap;
-
-  &:hover { color: v.$color-crimson; border-color: v.$color-crimson; }
-}
-
-// ─── 3-column workspace grid — fills remaining space, children scroll ─────────
+// ─── 3-column workspace grid ──────────────────────────────────────────────────
 .workspaceGrid {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  gap: v.$space-4;
-  align-items: stretch;
-  overflow: hidden;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	gap: v.$space-4;
+	align-items: stretch;
+	overflow: hidden;
 
-  @media (max-width: v.$bp-lg) {
-    flex-direction: column;
-    overflow-y: auto;
-  }
+	@media (max-width: v.$bp-lg) {
+		flex-direction: column;
+		overflow-y: auto;
+	}
 
-  @media (max-width: v.$bp-md) {
-    gap: v.$space-3;
-  }
+	@media (max-width: v.$bp-md) {
+		gap: v.$space-3;
+	}
 }
 
 .sidebarLeft,
 .sidebarRight {
-  flex-shrink: 0;
-  overflow-y: auto;
+	flex-shrink: 0;
+	overflow-y: auto;
 
-  @media (max-width: v.$bp-lg) {
-    width: 100%;
-    overflow-y: visible;
-  }
+	@media (max-width: v.$bp-lg) {
+		width: 100%;
+		overflow-y: visible;
+	}
 }
 
 .viewerWrap {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; // ResultViewer's panels scroll internally
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 
-  @media (max-width: v.$bp-lg) {
-    min-height: 500px;
-  }
+	@media (max-width: v.$bp-lg) {
+		min-height: 500px;
+	}
 }
 
 .noPage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 200px;
-  color: v.$color-muted;
-  font-family: v.$font-arabic;
-  font-size: 1rem;
-  direction: rtl;
-  border: 1px dashed v.$color-border;
-  border-radius: v.$radius-lg;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	min-height: 200px;
+	color: v.$color-muted;
+	font-family: v.$font-ui;
+	font-size: 1rem;
+	border: 1px dashed v.$color-border;
+	border-radius: v.$radius-lg;
 }
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 .footer {
-  flex-shrink: 0;
-  padding: v.$space-3 v.$space-6;
-  text-align: center;
-  font-family: v.$font-ui;
-  font-size: 0.75rem;
-  color: v.$color-muted;
-  border-top: 1px solid v.$color-border;
-  background: v.$color-surface-2;
+	flex-shrink: 0;
+	padding: v.$space-3 v.$space-6;
+	text-align: center;
+	font-family: v.$font-ui;
+	font-size: 0.75rem;
+	color: v.$color-muted;
+	border-top: 1px solid v.$color-border;
+	background: v.$color-surface-2;
 
-  a {
-    color: v.$color-teal;
-    text-decoration: none;
-    &:hover { text-decoration: underline; }
-  }
+	a {
+		color: v.$color-teal;
+		text-decoration: none;
+		&:hover {
+			text-decoration: underline;
+		}
+	}
 }

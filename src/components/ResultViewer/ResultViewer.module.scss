@@ -1,6 +1,6 @@
 // src/components/ResultViewer/ResultViewer.module.scss
 @use '../../styles/variables' as v;
-@use "sass:color";
+@use 'sass:color';
 
 // ─── Wrapper ──────────────────────────────────────────────────────────────────
 .wrapper {
@@ -35,7 +35,7 @@
 }
 
 .tab {
-	font-family: v.$font-arabic;
+	font-family: v.$font-ui;
 	font-size: 0.8rem;
 	padding: v.$space-1 v.$space-3;
 	background: transparent;
@@ -84,7 +84,7 @@
 	border-radius: 3px;
 	cursor: pointer;
 	color: v.$color-muted;
-	font-family: v.$font-arabic;
+	font-family: v.$font-ui;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -109,45 +109,12 @@
 	}
 }
 
-// ─── Badges / chips ───────────────────────────────────────────────────────────
-.badge {
-	font-family: v.$font-ui;
-	font-size: 0.65rem;
-	font-weight: 700;
-	letter-spacing: 0.05em;
-	padding: 2px v.$space-2;
-	border-radius: v.$radius-sm;
-
-	&.badgeHigh {
-		background: color.mix(#5ec98e, #fff, 15%);
-		color: color.adjust(#5ec98e, $lightness: -30%);
-	}
-	&.badgeMedium {
-		background: color.mix(#c9a84c, #fff, 15%);
-		color: color.adjust(#c9a84c, $lightness: -30%);
-	}
-	&.badgeLow {
-		background: color.mix(#e07070, #fff, 15%);
-		color: color.adjust(#e07070, $lightness: -30%);
-	}
-}
-
-.chip {
-	font-family: v.$font-arabic;
-	font-size: 0.7rem;
-	padding: 2px v.$space-2;
-	background: color.mix(#1a4a3a, #faf3e4, 8%);
-	color: v.$color-teal;
-	border: 1px solid color.mix(#1a4a3a, #faf3e4, 18%);
-	border-radius: v.$radius-sm;
-}
-
 // ─── Copy button ──────────────────────────────────────────────────────────────
 .copyBtn {
 	display: flex;
 	align-items: center;
 	gap: v.$space-1;
-	font-family: v.$font-arabic;
+	font-family: v.$font-ui;
 	font-size: 0.8rem;
 	padding: v.$space-1 v.$space-3;
 	background: v.$color-teal;
@@ -183,13 +150,11 @@
 
 	&.splitView {
 		grid-template-columns: 1fr 1fr;
-
 		@media (max-width: v.$bp-md) {
 			grid-template-columns: 1fr;
 			grid-template-rows: 1fr 1fr;
 		}
 	}
-
 	&.textOnly {
 		grid-template-columns: 1fr;
 	}
@@ -202,21 +167,42 @@
 .imagePanel {
 	display: flex;
 	flex-direction: column;
-	border-left: 1px solid v.$color-border;
+	border-right: 1px solid v.$color-border;
 	overflow: hidden;
 }
 
-.panelLabel {
-	font-family: v.$font-display;
-	font-size: 0.65rem;
-	font-weight: 600;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
+.imageLabelContainer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	color: v.$color-muted;
 	padding: v.$space-2 v.$space-4;
 	border-bottom: 1px solid v.$color-border;
 	background: v.$color-surface-2;
-	direction: rtl;
+}
+
+.panelLabel {
+	font-family: v.$font-display;
+	margin: auto;
+	font-size: 0.65rem;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.expandBtn {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: v.$color-muted;
+	font-size: 1rem;
+	line-height: 1;
+	padding: 0 2px;
+	transition: color v.$transition-fast;
+
+	&:hover {
+		color: v.$color-teal;
+	}
 }
 
 .pageImage {
@@ -307,16 +293,14 @@
 	padding: v.$space-8;
 	text-align: center;
 	color: v.$color-muted;
-	font-family: v.$font-arabic;
+	font-family: v.$font-ui;
 	font-size: 1rem;
 	min-height: 300px;
-	direction: rtl;
 }
 
 .placeholderError {
 	color: v.$color-crimson;
 }
-
 .placeholderIcon {
 	font-size: 2rem;
 }
@@ -325,7 +309,6 @@
 	font-size: 0.8rem;
 	opacity: 0.7;
 	font-family: v.$font-ui;
-	direction: ltr;
 }
 
 .loadingRing {
@@ -341,4 +324,67 @@
 	to {
 		transform: rotate(360deg);
 	}
+}
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+.lightboxOverlay {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	background: rgba(28, 18, 8, 0.92);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: v.$space-3;
+	cursor: zoom-out;
+	animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.lightboxClose {
+	position: absolute;
+	top: v.$space-4;
+	right: v.$space-5;
+	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 50%;
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition: background v.$transition-fast;
+	z-index: 1001;
+
+	&:hover {
+		background: rgba(255, 255, 255, 0.22);
+	}
+}
+
+.lightboxImage {
+	max-width: 90vw;
+	max-height: 85vh;
+	object-fit: contain;
+	border-radius: v.$radius-md;
+	box-shadow: v.$shadow-xl;
+	cursor: default;
+}
+
+.lightboxCaption {
+	font-family: v.$font-ui;
+	font-size: 0.75rem;
+	color: rgba(255, 255, 255, 0.5);
+	letter-spacing: 0.04em;
 }

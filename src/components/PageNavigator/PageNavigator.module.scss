@@ -4,27 +4,51 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: v.$space-3;
-  min-width: 120px;
+  gap: v.$space-2;
+  min-width: 130px;
 }
 
-.heading {
-  font-family: v.$font-display;
-  font-size: 0.7rem;
+// ─── Tab bar ──────────────────────────────────────────────────────────────────
+.tabBar {
+  display: flex;
+  gap: 2px;
+  background: v.$color-border;
+  border-radius: v.$radius-md;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.tabBtn {
+  flex: 1;
+  font-family: v.$font-ui;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: v.$space-1 v.$space-2;
+  background: transparent;
+  border: none;
+  border-radius: calc(#{v.$radius-md} - 2px);
+  cursor: pointer;
   color: v.$color-muted;
-  padding: 0 v.$space-2;
-  direction: rtl;
+  transition: background v.$transition-fast, color v.$transition-fast;
+  white-space: nowrap;
+
+  &:hover { color: v.$color-ink; }
+
+  &.activeTabBtn {
+    background: v.$color-surface;
+    color: v.$color-teal;
+    box-shadow: v.$shadow-sm;
+  }
 }
 
+// ─── Page list ────────────────────────────────────────────────────────────────
 .list {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  max-height: 560px;
+  max-height: 520px;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -32,12 +56,36 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   position: relative;
+  border-radius: v.$radius-md;
+  transition: background v.$transition-fast;
 
-  &:hover .removeBtn {
-    opacity: 1;
+  &:hover .removeBtn { opacity: 1; }
+
+  &.dragOver {
+    background: rgba(26, 74, 58, 0.07);
+    outline: 2px dashed v.$color-teal;
+    outline-offset: -2px;
   }
+
+  &.dragging { opacity: 0.4; }
+}
+
+// ─── Drag handle ──────────────────────────────────────────────────────────────
+.dragHandle {
+  flex-shrink: 0;
+  width: 14px;
+  color: v.$color-border;
+  font-size: 0.9rem;
+  cursor: grab;
+  user-select: none;
+  line-height: 1;
+  transition: color v.$transition-fast;
+
+  .item:hover & { color: v.$color-muted; }
+
+  &:active { cursor: grabbing; }
 }
 
 .removeBtn {
@@ -64,7 +112,7 @@
 }
 
 .pageBtn {
-  width: 100%;
+  flex: 1;
   display: flex;
   align-items: center;
   gap: v.$space-2;
@@ -73,8 +121,7 @@
   border: 1px solid transparent;
   border-radius: v.$radius-md;
   cursor: pointer;
-  text-align: right;
-  direction: rtl;
+  text-align: left;
   transition: background v.$transition-fast, border-color v.$transition-fast;
   position: relative;
 
@@ -86,19 +133,17 @@
   &.selected {
     background: v.$color-teal;
     border-color: v.$color-teal;
-
     .pageNum { color: v.$color-gold; }
-    .meta    { color: rgba(201,168,76,0.7); }
   }
 
   // Status colour left border
-  &.done       { border-right: 2px solid #5ec98e; }
-  &.processing { border-right: 2px solid v.$color-gold; }
-  &.error      { border-right: 2px solid #e07070; }
+  &.done       { border-left: 2px solid #5ec98e; }
+  &.processing { border-left: 2px solid v.$color-gold; }
+  &.error      { border-left: 2px solid #e07070; }
 
-  &.selected.done       { border-right-color: v.$color-gold; }
-  &.selected.processing { border-right-color: v.$color-gold; }
-  &.selected.error      { border-right-color: #e07070; }
+  &.selected.done       { border-left-color: v.$color-gold; }
+  &.selected.processing { border-left-color: v.$color-gold; }
+  &.selected.error      { border-left-color: #e07070; }
 }
 
 .pageNum {
@@ -114,7 +159,7 @@
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  margin-right: auto;
+  margin-left: auto;
 
   .done &       { background: #5ec98e; }
   .processing & { background: v.$color-gold; }
@@ -124,7 +169,7 @@
 
 .spinner {
   position: absolute;
-  left: v.$space-2;
+  right: v.$space-2;
   width: 10px;
   height: 10px;
   border: 1.5px solid rgba(201,168,76,0.3);
@@ -135,19 +180,99 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.meta {
-  font-family: v.$font-ui;
-  font-size: 0.65rem;
-  color: v.$color-muted;
-  white-space: nowrap;
+// ─── Insert panel ─────────────────────────────────────────────────────────────
+.insertPanel {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-2;
+  padding: v.$space-3;
+  background: v.$color-surface-2;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-md;
 }
 
+.insertHeading {
+  font-family: v.$font-display;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: v.$color-teal;
+  margin-bottom: v.$space-1;
+}
+
+.insertLabel {
+  font-family: v.$font-ui;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: v.$color-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.insertSelect {
+  font-family: v.$font-ui;
+  font-size: 0.8rem;
+  color: v.$color-ink;
+  background: v.$color-surface;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-sm;
+  padding: v.$space-1 v.$space-2;
+  cursor: pointer;
+  width: 100%;
+
+  &:focus { outline: 2px solid v.$color-teal; outline-offset: 1px; }
+}
+
+.insertHint {
+  font-family: v.$font-ui;
+  font-size: 0.72rem;
+  color: v.$color-muted;
+  line-height: 1.5;
+}
+
+.hiddenInput { display: none; }
+
+.insertBtn {
+  font-family: v.$font-ui;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: v.$space-2 v.$space-3;
+  background: v.$color-teal;
+  color: v.$color-gold-light;
+  border: none;
+  border-radius: v.$radius-md;
+  cursor: pointer;
+  text-align: center;
+  transition: background v.$transition-fast;
+
+  &:hover { background: v.$color-teal-light; }
+}
+
+.insertCancelBtn {
+  font-family: v.$font-ui;
+  font-size: 0.75rem;
+  color: v.$color-muted;
+  background: transparent;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-md;
+  padding: v.$space-1 v.$space-3;
+  cursor: pointer;
+  text-align: center;
+  transition: color v.$transition-fast, border-color v.$transition-fast;
+
+  &:hover { color: v.$color-crimson; border-color: v.$color-crimson; }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
 @media (max-width: v.$bp-lg) {
   .nav {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     min-width: unset;
+    flex-wrap: wrap;
   }
+  .tabBar { flex-shrink: 0; }
   .list {
     flex-direction: row;
     max-height: unset;
@@ -158,9 +283,8 @@
   .item {
     flex-direction: column-reverse;
   }
-  .removeBtn {
-    opacity: 1; // always visible on mobile/tablet
-  }
+  .removeBtn { opacity: 1; }
+  .dragHandle { display: none; }
   .pageBtn {
     flex-direction: column;
     gap: 2px;
@@ -169,5 +293,5 @@
     text-align: center;
     align-items: center;
   }
-  .meta { display: none; }
+  .insertPanel { width: 100%; }
 }

@@ -1,6 +1,6 @@
 # مرقمن — Islamic Manuscript Digitizer
 
-A production-ready **Next.js 15 + TypeScript + Modular SCSS** SPA for digitizing Arabic Islamic manuscripts, backed by a locally-running **Qari-OCR-0.1-VL-2B** model served via **FastAPI** (not Gradio).
+A production-ready **Next.js 15 + TypeScript + Modular SCSS** SPA for digitizing Arabic Islamic manuscripts, backed by a locally-running **Qari-OCR-0.1-VL-2B** model served via **FastAPI**.
 
 ---
 
@@ -19,7 +19,7 @@ FastAPI server  http://localhost:7860/api/digitize
     │  → streamed token generation
     ▼
 { id, text, duration, tokenCount, maxTokens }
-    │  derive metadata (lines, diacritics, headings, confidence)
+    │  derive confidence level from Arabic character density
     ▼
 Browser  →  ResultViewer (split image / text view)
 ```
@@ -29,15 +29,16 @@ Browser  →  ResultViewer (split image / text view)
 ## Features
 
 - 📄 **PDF support** — Multi-page PDFs rendered page-by-page via `pdfjs-dist` *(can be disabled via env — see Configuration)*
-- 🖼️ **Image support** — JPEG, PNG, WebP, GIF
+- 🖼️ **Image support** — JPEG, PNG, WebP, GIF; drag multiple images for batch processing
 - 🤖 **Qari-OCR** — Specialized Arabic OCR model (Qwen2-VL 2B fine-tune on Islamic manuscripts)
-- 📖 **Split-view** — Side-by-side original image + extracted Arabic text
-- 🔤 **RTL-first UI** — Fully right-to-left Arabic interface with Amiri font
-- 📊 **Metadata** — Auto-detected confidence level, line count, diacritics, headings
+- 📖 **Split-view** — Side-by-side original image + extracted Arabic text with S/M/L font size controls
+- 🔍 **Image lightbox** — Click any page image to expand it to full-screen for closer inspection
+- ↕️ **Drag-and-sort pages** — Reorder pages in the sidebar by dragging them to a new position
+- ➕ **Insert pages** — Use the "Insert" tab in the sidebar to splice new images or a PDF into any position (beginning, between pages, or end), which are then automatically processed
 - 🪙 **Token tracking** — Per-page token count and model limit displayed in the result footer
 - ⏱️ **Live elapsed timer** — Seconds counter shown while a page is being processed
 - ⛔ **Max-token guard** — If the model hits its token limit mid-generation, the API aborts and surfaces a clear error rather than returning silently truncated text
-- 💾 **Export** — Download all pages as `.txt` or `.json`
+- 💾 **Export** — Download all pages as a single `.txt` file with page separators
 - ⚡ **Sequential processing** — Pages processed one-by-one with live progress bar and dot indicators
 
 ---
@@ -94,7 +95,7 @@ Edit `.env.local` as needed (defaults are fine for local development):
 
 ```env
 # URL of the FastAPI OCR server
-GRADIO_URL=http://localhost:7860
+OCR_SERVER_URL=http://localhost:7860
 
 # Set to "false" to disable PDF uploads (image-only mode)
 NEXT_PUBLIC_ENABLE_PDF=true
@@ -117,10 +118,34 @@ npm run build && npm start
 
 ## Configuration
 
-| Variable                 | Default                 | Description                                                                |
-|--------------------------|-------------------------|----------------------------------------------------------------------------|
-| `GRADIO_URL`             | `http://localhost:7860` | Base URL of the FastAPI OCR server. Change if you moved the port or host. |
-| `NEXT_PUBLIC_ENABLE_PDF` | `true`                  | Set to `"false"` to hide PDF upload support entirely (image-only mode).   |
+| Variable                 | Default                 | Description                                                                 |
+|--------------------------|-------------------------|-----------------------------------------------------------------------------|
+| `OCR_SERVER_URL`         | `http://localhost:7860` | Base URL of the FastAPI OCR server. Change if you moved the port or host.  |
+| `NEXT_PUBLIC_ENABLE_PDF` | `true`                  | Set to `"false"` to hide PDF upload support entirely (image-only mode).    |
+
+---
+
+## Workflow
+
+### Basic digitization
+1. Upload a PDF or one / multiple images on the home screen.
+2. Pages are processed sequentially — watch the progress bar and status dots.
+3. Click any page thumbnail in the sidebar to view it in Split / Text / Image mode.
+4. Use **Copy Text** to copy a single page, or **Export All** when complete.
+
+### Reordering pages
+- Drag the `⠿` handle on any page in the sidebar to a new position.
+- Page numbers update automatically and the selected page follows the move.
+
+### Inserting pages
+1. Switch to the **Insert** tab in the sidebar (only available when not processing).
+2. Choose a **position** — beginning, after any existing page, or end.
+3. Click **Choose file(s) & insert** and pick one or more images or a PDF.
+4. The new pages are inserted at the chosen position and processed immediately.
+
+### Expanding images
+- Click any page image (or the ⛶ button in the image panel header) to open it in a full-screen lightbox.
+- Click outside the image or the ✕ button to close.
 
 ---
 
@@ -135,18 +160,18 @@ npm run build && npm start
     ├── app/
     │   ├── api/digitize/route.ts   # Next.js proxy to FastAPI; handles 422 max-token errors
     │   ├── globals.scss            # Global styles & Google Fonts imports
-    │   ├── layout.tsx              # Root layout (RTL, lang="ar")
+    │   ├── layout.tsx              # Root layout (lang="en")
     │   ├── page.tsx                # Main SPA page (hero + workspace)
     │   └── page.module.scss        # Full-viewport layout; panels scroll independently
     ├── components/
     │   ├── Header/                 # Slim sticky header with Islamic ornament
     │   ├── FileUploader/           # Drag-and-drop zone; PDF badge conditional on env
     │   ├── ProcessingStatus/       # Progress bar, page dots, live elapsed timer
-    │   ├── PageNavigator/          # Sidebar page list (multi-page PDFs)
-    │   ├── ResultViewer/           # Split/text/image tabs; footer shows token count + duration
+    │   ├── PageNavigator/          # Sidebar with "Pages" (drag-sort) and "Insert" tabs
+    │   ├── ResultViewer/           # Split/text/image tabs; image lightbox; footer stats
     │   └── ExportPanel/            # Export all pages + reset
     ├── hooks/
-    │   └── useDigitizer.ts         # Core state machine, sequential processing, error handling
+    │   └── useDigitizer.ts         # Core state machine: startJob, reorderPages, insertPages
     ├── styles/
     │   └── _variables.scss         # Design tokens (palette, spacing, typography, breakpoints)
     ├── types/index.ts              # Shared TypeScript types
@@ -195,7 +220,7 @@ When the model fills its entire token budget before finishing, the server aborts
 }
 ```
 
-The Next.js route surfaces this as a descriptive page-level error in the UI rather than silently storing partial text.
+The Next.js route surfaces this as a descriptive page-level error in the UI.
 
 ---
 
@@ -212,4 +237,3 @@ MAX_TOKENS = 2000  # increase for longer pages, decrease for faster responses
 ## License
 
 MIT
-

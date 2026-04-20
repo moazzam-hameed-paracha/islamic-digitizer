@@ -2,68 +2,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
-// Qari OCR — local Gradio server
+// Qari OCR — local FastAPI server
 //
-// The Python script runs:  iface.launch()   →  http://localhost:7860
+// The Python script (main.py) runs via uvicorn  →  http://localhost:7860
 //
-// Gradio's gr.Interface exposes a single REST endpoint:
-//   POST /api/predict
-//   Body:  { "data": ["data:<mediaType>;base64,<base64>"] }
-//   Reply: { "data": ["<plain text>"], "duration": <float>, ... }
+// The FastAPI server exposes a single REST endpoint:
+//   POST /api/digitize
+//   Body:  { "dataUrl": "data:<mediaType>;base64,<base64>" }
+//   Reply: { "id": "...", "text": "...", "duration": <float>, ... }
 // ---------------------------------------------------------------------------
 
-const GRADIO_BASE_URL =
-	process.env.GRADIO_URL?.replace(/\/$/, '') ?? 'http://localhost:7860';
+const OCR_SERVER_URL =
+	process.env.OCR_SERVER_URL?.replace(/\/$/, '') ?? 'http://localhost:7860';
 
-const PREDICT_URL = `${GRADIO_BASE_URL}/api/digitize`;
-
-// ---------------------------------------------------------------------------
-// Derive lightweight metadata from the raw OCR text so the rest of the app
-// (confidence badge, chips, line-count, etc.) keeps working without changes.
-// ---------------------------------------------------------------------------
-function deriveMetadata(text: string) {
-	const lines = text.split('\n');
-	const nonEmpty = lines.filter((l) => l.trim().length > 0);
-
-	// Arabic diacritics: U+064B (tanwin fath) … U+065F + U+0670 (superscript alef)
-	const hasDiacritics = /[\u064B-\u065F\u0670]/.test(text);
-
-	// Heuristic: a "heading" line is short (≤ 40 chars), non-empty, and surrounded
-	// by blank lines — or appears as the very first non-empty line.
-	const hasHeadings = nonEmpty.some((line, i) => {
-		const trimmed = line.trim();
-		if (trimmed.length === 0 || trimmed.length > 40) return false;
-		const prev = nonEmpty[i - 1]?.trim() ?? '';
-		return prev.length === 0 || i === 0;
-	});
-
-	// Very rough table detector: multiple lines that contain "|" or tab-separated cols
-	const hasTables = nonEmpty.some(
-		(l) =>
-			(l.match(/\|/g) ?? []).length >= 2 || (l.match(/\t/g) ?? []).length >= 2,
-	);
-
-	// Confidence: if the model returned a reasonable amount of Arabic text → high
-	const arabicCharCount = (text.match(/[\u0600-\u06FF]/g) ?? []).length;
-	const confidence: 'high' | 'medium' | 'low' =
-		arabicCharCount > 100 ? 'high' : arabicCharCount > 20 ? 'medium' : 'low';
-
-	return {
-		confidence,
-		metadata: {
-			hasHeadings,
-			hasDiacritics,
-			hasTables,
-			estimatedLines: nonEmpty.length,
-		},
-	};
-}
+const OCR_ENDPOINT = `${OCR_SERVER_URL}/api/digitize`;
 
 // ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
 	return NextResponse.json(
 		{ message: 'This endpoint only accepts POST requests.' },
 		{ status: 405 },
@@ -85,21 +43,35 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Gradio expects the image as a data-URL string inside the "data" array.
+		// The FastAPI server expects the image as a data-URL string.
 		const dataUrl = `data:${mediaType ?? 'image/png'};base64,${imageBase64}`;
 
-		const mlRes = await fetch(PREDICT_URL, {
+		const ocrRes = await fetch(OCR_ENDPOINT, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ dataUrl }),
 		});
 
-		if (!mlRes.ok) {
-			const err = await mlRes.text();
-			let parsedErr: { detail?: { code?: string; message?: string; tokenCount?: number; maxTokens?: number } } = {};
-			try { parsedErr = JSON.parse(err); } catch { /* raw text */ }
+		if (!ocrRes.ok) {
+			const err = await ocrRes.text();
+			let parsedErr: {
+				detail?: {
+					code?: string;
+					message?: string;
+					tokenCount?: number;
+					maxTokens?: number;
+				};
+			} = {};
+			try {
+				parsedErr = JSON.parse(err);
+			} catch {
+				/* raw text */
+			}
 
-			if (mlRes.status === 422 && parsedErr?.detail?.code === 'MAX_TOKENS_REACHED') {
+			if (
+				ocrRes.status === 422 &&
+				parsedErr?.detail?.code === 'MAX_TOKENS_REACHED'
+			) {
 				return NextResponse.json(
 					{
 						error: 'MAX_TOKENS_REACHED',
@@ -111,14 +83,14 @@ export async function POST(req: NextRequest) {
 				);
 			}
 
-			console.error('Gradio OCR error:', err);
+			console.error('OCR server error:', err);
 			return NextResponse.json(
-				{ error: 'Gradio server returned an error', details: err },
-				{ status: mlRes.status },
+				{ error: 'OCR server returned an error', details: err },
+				{ status: ocrRes.status },
 			);
 		}
 
-		const gradioData = (await mlRes.json()) as {
+		const ocrResponse = (await ocrRes.json()) as {
 			id: string;
 			text: string;
 			duration: number;
@@ -126,13 +98,7 @@ export async function POST(req: NextRequest) {
 			maxTokens?: number;
 		};
 
-		const { confidence, metadata } = deriveMetadata(gradioData.text);
-
-		return NextResponse.json({
-			...gradioData,
-			confidence,
-			metadata,
-		});
+		return NextResponse.json(ocrResponse);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
 
@@ -142,8 +108,8 @@ export async function POST(req: NextRequest) {
 				{
 					error: 'Cannot reach the Qari OCR server.',
 					details:
-						`Make sure the Python script is running and accessible at ${GRADIO_BASE_URL}. ` +
-						'Set GRADIO_URL in .env.local if you changed the port.',
+						`Make sure the Python script is running and accessible at ${OCR_SERVER_URL}. ` +
+						'Set OCR_SERVER_URL in .env.local if you changed the port.',
 				},
 				{ status: 503 },
 			);

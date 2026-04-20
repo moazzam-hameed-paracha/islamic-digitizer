@@ -16,7 +16,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: v.$space-4;
-  direction: rtl;
 }
 
 .titleGroup {
@@ -58,7 +57,6 @@
   font-size: 1rem;
   font-weight: 700;
   color: v.$color-gold-light;
-  direction: rtl;
 }
 
 .filename {
@@ -123,8 +121,8 @@
 .pageDots {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 4px;
-  direction: rtl;
 }
 
 .dot {
@@ -148,6 +146,7 @@
 .stats {
   display: flex;
   align-items: center;
+  justify-content: end;
   gap: v.$space-3;
 }
 
