@@ -15,7 +15,7 @@ from qwen_vl_utils import process_vision_info
 # Model loading (Kept same as your original)
 # ---------------------------------------------------------------------------
 BASE_MODEL = "Qwen/Qwen2-VL-2B-Instruct"
-ADAPTER_MODEL = "oddadmix/Qari-OCR-0.1-VL-2B-Instruct"
+ADAPTER_MODEL = "NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct"
 MAX_TOKENS = 2000
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
