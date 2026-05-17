@@ -17,10 +17,6 @@ export default function ExportPanel({
 }: ExportPanelProps) {
 	const donePages = job.pages.filter((p) => p.status === 'done');
 	const totalChars = donePages.reduce((acc, p) => acc + p.arabicText.length, 0);
-	const totalLines = donePages.reduce(
-		(acc, p) => acc + (p.metadata?.estimatedLines ?? 0),
-		0,
-	);
 
 	return (
 		<div className={styles.panel}>
@@ -29,12 +25,6 @@ export default function ExportPanel({
 				<div className={styles.statCard}>
 					<span className={styles.statVal}>{donePages.length}</span>
 					<span className={styles.statKey}>Pages</span>
-				</div>
-				<div className={styles.statCard}>
-					<span className={styles.statVal}>
-						{totalLines.toLocaleString('ar')}
-					</span>
-					<span className={styles.statKey}>Lines</span>
 				</div>
 				<div className={styles.statCard}>
 					<span className={styles.statVal}>
