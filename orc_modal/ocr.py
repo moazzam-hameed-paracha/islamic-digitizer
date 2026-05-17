@@ -8,7 +8,11 @@ from threading import Thread
 from PIL import Image
 from typing import Any, cast
 from fastapi import HTTPException
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor, TextIteratorStreamer
+from transformers import (
+    Qwen2VLForConditionalGeneration,
+    AutoProcessor,
+    TextIteratorStreamer,
+)
 from qwen_vl_utils import process_vision_info
 
 # ---------------------------------------------------------------------------
@@ -44,10 +48,6 @@ def log_progress(request_id: str, start_time: float, percent: int, stage: str) -
     print(f"[{request_id}] {percent:>3}% | {stage} | {elapsed:.2f}s", flush=True)
 
 
-# ---------------------------------------------------------------------------
-# API Endpoint
-# ---------------------------------------------------------------------------
-
 async def _run_ocr(data_url: str, request_id: str) -> dict:
     """Core OCR logic. Returns result dict or raises HTTPException."""
     start_time = time.time()
@@ -64,7 +64,7 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
 
     # 2. Convert to monochrome (grayscale → back to RGB so model pipeline stays consistent)
     try:
-        img = Image.open(io.BytesIO(image_data)).convert("L").convert("RGB")
+        img = Image.open(io.BytesIO(image_data)).convert("RGB")
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         image_data = buf.getvalue()
@@ -90,7 +90,9 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
         ]
 
         # --- Inference Logic ---
-        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        text = processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
         vision_info = cast(Any, process_vision_info(messages))
 
         image_inputs, video_inputs = vision_info[0], vision_info[1]
@@ -103,7 +105,9 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
             return_tensors="pt",
         ).to(device)
 
-        streamer = TextIteratorStreamer(processor.tokenizer, skip_special_tokens=True, skip_prompt=True)
+        streamer = TextIteratorStreamer(
+            processor.tokenizer, skip_special_tokens=True, skip_prompt=True
+        )
         generation_error: Exception | None = None
         generation_start = time.time()
 
@@ -128,7 +132,9 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
             output_tokens.append(token)
             token_count += 1
             elapsed_generation = time.time() - generation_start
-            tok_per_sec = token_count / elapsed_generation if elapsed_generation > 0 else 0.0
+            tok_per_sec = (
+                token_count / elapsed_generation if elapsed_generation > 0 else 0.0
+            )
             print(
                 f"\r[{request_id}]  generating  {token_count} tokens  {tok_per_sec:.1f} tok/s  {elapsed_generation:.1f}s elapsed",
                 end="",
@@ -143,7 +149,9 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
             raise generation_error
 
         generation_duration = time.time() - generation_start
-        tok_per_sec = token_count / generation_duration if generation_duration > 0 else 0.0
+        tok_per_sec = (
+            token_count / generation_duration if generation_duration > 0 else 0.0
+        )
         print(
             f"\r[{request_id}]  done        {token_count} tokens  {tok_per_sec:.1f} tok/s  {generation_duration:.1f}s  ✓",
             flush=True,
@@ -154,7 +162,10 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
         duration = time.time() - start_time
 
         if max_tokens_reached:
-            print(f"[{request_id}] MAX TOKENS REACHED ({token_count}/{MAX_TOKENS}), aborting.", flush=True)
+            print(
+                f"[{request_id}] MAX TOKENS REACHED ({token_count}/{MAX_TOKENS}), aborting.",
+                flush=True,
+            )
             raise HTTPException(
                 status_code=422,
                 detail={
@@ -162,7 +173,7 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
                     "message": f"Output was truncated: the model hit the {MAX_TOKENS}-token limit before finishing.",
                     "tokenCount": token_count,
                     "maxTokens": MAX_TOKENS,
-                }
+                },
             )
 
         return {
@@ -182,5 +193,3 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
-
-

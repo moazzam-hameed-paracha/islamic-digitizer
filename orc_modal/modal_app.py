@@ -38,7 +38,7 @@ gateway_image = modal.Image.debian_slim(python_version="3.12").pip_install(
 
 @app.function(
     image=gpu_image,
-    gpu="T4",
+    gpu="A10G",
     volumes={"/cache": volume},
     timeout=300,
 )
