@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addArabicDiacritics } from '@/lib/gemini';
+
 
 // ---------------------------------------------------------------------------
 // Qari OCR — submit a digitization job
 //
-// Production (Modal): POST returns { jobId } immediately. The client then
-//   polls GET /api/digitize/[jobId] until the job completes.
-//
-// Local dev: the local FastAPI server is blocking and returns the full result
-//   directly. The route detects this case and returns the result inline so
-//   local development works without any changes.
+// POST returns { jobId } immediately. The client polls
+// GET /api/digitize/[jobId] until the job completes.
 // ---------------------------------------------------------------------------
 
 const OCR_SERVER_URL =
@@ -85,24 +81,8 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const result = (await ocrRes.json()) as Record<string, unknown>;
-
-		// Modal gateway: returns { jobId } — client will poll for the result.
-		if ('jobId' in result) {
-			return NextResponse.json({ jobId: result.jobId });
-		}
-
-		// Local dev: blocking server returns the full result directly.
-		// Apply Gemini diacritization here before forwarding to the client.
-		const ocrResponse = result as {
-			id: string;
-			text: string;
-			duration: number;
-			tokenCount?: number;
-			maxTokens?: number;
-		};
-		ocrResponse.text = await addArabicDiacritics(ocrResponse.text);
-		return NextResponse.json(ocrResponse);
+		const { jobId } = (await ocrRes.json()) as { jobId: string };
+		return NextResponse.json({ jobId });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
 

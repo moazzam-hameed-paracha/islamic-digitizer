@@ -54,7 +54,7 @@ def run_ocr_job(job_id: str, data_url: str) -> None:
     from fastapi import HTTPException
 
     os.environ["HF_HOME"] = "/cache"
-    from main import _run_ocr  # triggers model loading on first import
+    from orc_modal.main import _run_ocr  # triggers model loading on first import
 
     try:
         result = asyncio.run(_run_ocr(data_url, job_id))

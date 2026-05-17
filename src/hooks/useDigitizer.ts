@@ -59,15 +59,9 @@ async function runOcr(
 
   if (!submitRes.ok) throw new Error(`API error: ${submitRes.status}`);
 
-  const submitData = await submitRes.json() as Record<string, unknown>;
+  const { jobId } = await submitRes.json() as { jobId: string };
 
-  // Local dev: server returned the full result directly.
-  if (!("jobId" in submitData)) {
-    return extractPageResult(submitData as Parameters<typeof extractPageResult>[0]);
-  }
-
-  // Production: poll until the job completes.
-  const jobId = submitData.jobId as string;
+  // Poll until the job completes.
   const deadline = Date.now() + POLL_TIMEOUT_MS;
 
   while (Date.now() < deadline) {

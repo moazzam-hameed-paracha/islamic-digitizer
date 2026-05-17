@@ -2,22 +2,14 @@ import base64
 import asyncio
 import io
 import os
-import uuid
 import time
 import torch
 from threading import Thread
 from PIL import Image
 from typing import Any, cast
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import HTTPException
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor, TextIteratorStreamer
 from qwen_vl_utils import process_vision_info
-
-app = FastAPI(title="Qari OCR API")
-
-# --- Schema for JSON Payload ---
-class OCRRequest(BaseModel):
-    dataUrl: str  # This matches your JSON.stringify({ dataUrl })
 
 # ---------------------------------------------------------------------------
 # Model loading (Kept same as your original)
@@ -192,11 +184,3 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
             os.remove(tmp_path)
 
 
-@app.post("/api/digitize")
-async def digitize_image(payload: OCRRequest):
-    request_id = str(uuid.uuid4())[:8]
-    return await _run_ocr(payload.dataUrl, request_id)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
