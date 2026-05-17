@@ -22,8 +22,8 @@ MAX_TOKENS = 2000
 
 # Qwen2-VL image-size bounds (in pixels, multiples of 28).
 # Larger MAX → better accuracy on dense pages, slower inference.
-MIN_PIXELS = 256 * 28 * 28      # ~200K px
-MAX_PIXELS = 1280 * 28 * 28     # ~1M px — good sweet spot for full pages
+MIN_PIXELS = 256 * 28 * 28  # ~200K px
+MAX_PIXELS = 1280 * 28 * 28  # ~1M px — good sweet spot for full pages
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if device == "cuda" else torch.float32
@@ -165,7 +165,9 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
             raise generation_error
 
         generation_duration = time.time() - generation_start
-        tok_per_sec = token_count / generation_duration if generation_duration > 0 else 0.0
+        tok_per_sec = (
+            token_count / generation_duration if generation_duration > 0 else 0.0
+        )
         print(
             f"\r[{request_id}]  done        {token_count} tokens  "
             f"{tok_per_sec:.1f} tok/s  {generation_duration:.1f}s  ✓",

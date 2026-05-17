@@ -33,18 +33,20 @@ gpu_image = (
         "python-multipart>=0.0.26",
     )
     # Bake cache path into the image so transformers picks it up on import.
-    .env({
-        "HF_HOME": HF_CACHE,
-        "TRANSFORMERS_CACHE": HF_CACHE,
-        "HF_HUB_ENABLE_HF_TRANSFER": "1",  # faster model downloads
-    })
-    .pip_install("hf_transfer>=0.1.8")
+    .env(
+        {
+            "HF_HOME": HF_CACHE,
+            "TRANSFORMERS_CACHE": HF_CACHE,
+            "HF_XET_HIGH_PERFORMANCE": "1",  # faster model downloads
+        }
+    )
     .add_local_python_source("ocr")
 )
 
 gateway_image = modal.Image.debian_slim(python_version="3.12").pip_install(
     "fastapi>=0.136.0", "uvicorn>=0.44.0"
 )
+
 
 # ---------------------------------------------------------------------------
 # OCR worker — class-based so model loads ONCE per container
@@ -54,8 +56,8 @@ gateway_image = modal.Image.debian_slim(python_version="3.12").pip_install(
     gpu="A10G",
     volumes={HF_CACHE: volume},
     timeout=300,
-    # scaledown_window=300,   # keep warm for 5 min after last request
-    min_containers=0,        # set to 1 if you want zero cold starts (costs more)
+    scaledown_window=5,  # keep warm for 5 secs after last request
+    min_containers=0,  # set to 1 if you want zero cold starts (costs more)
 )
 @modal.concurrent(max_inputs=2)  # 2 concurrent requests share one warm GPU
 class OCRWorker:
@@ -64,6 +66,7 @@ class OCRWorker:
         """Runs ONCE when container starts. Loads model into GPU memory."""
         # Import here so module load doesn't happen on the gateway image.
         import ocr  # noqa: F401 — triggers model load
+
         print("[OCRWorker] Model loaded and ready", flush=True)
 
     @modal.method()
@@ -117,9 +120,7 @@ def gateway() -> object:
         try:
             await OCRWorker().run.spawn.aio(job_id, payload.dataUrl)  # type: ignore
         except Exception as exc:
-            await job_store.put.aio(
-                job_id, {"status": "error", "error": str(exc)}
-            )
+            await job_store.put.aio(job_id, {"status": "error", "error": str(exc)})
         return {"jobId": job_id}
 
     @gw.get("/api/digitize/{job_id}")
