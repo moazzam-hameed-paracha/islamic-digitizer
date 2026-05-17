@@ -94,13 +94,13 @@ def gateway() -> object:
     @gw.post("/api/digitize")
     async def submit_job(payload: OCRRequest):
         job_id = str(uuid.uuid4())[:8]
-        job_store[job_id] = {"status": "pending"}
+        await job_store.put.aio(job_id, {"status": "pending"})
         run_ocr_job.spawn(job_id, payload.dataUrl)
         return {"jobId": job_id}
 
     @gw.get("/api/digitize/{job_id}")
     async def poll_job(job_id: str):
-        result = job_store.get(job_id)
+        result = await job_store.get.aio(job_id)
         if result is None:
             raise HTTPException(status_code=404, detail="Job not found")
         return result
