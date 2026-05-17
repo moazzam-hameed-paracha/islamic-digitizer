@@ -70,7 +70,6 @@ async function runOcr(
     if (isCancelled()) throw new Error("Cancelled");
 
     const pollRes = await fetch(`/api/digitize/${jobId}`);
-    if (!pollRes.ok) throw new Error(`Poll error: ${pollRes.status}`);
 
     const data = await pollRes.json() as {
       status: "pending" | "done" | "error";
@@ -81,17 +80,17 @@ async function runOcr(
       error?: string;
     };
 
-    if (data.status === "done") {
-      return extractPageResult(data);
-    }
-
-    if (data.status === "error") {
+    if (!pollRes.ok || data.status === "error") {
       if (data.error === "MAX_TOKENS_REACHED") {
         throw new Error(
           `Max tokens reached (${data.tokenCount ?? "?"}/${data.maxTokens ?? "?"}): output was truncated before completion.`
         );
       }
-      throw new Error(data.error ?? "OCR failed");
+      throw new Error(data.error ?? `Poll error: ${pollRes.status}`);
+    }
+
+    if (data.status === "done") {
+      return extractPageResult(data);
     }
 
     // status === "pending" — keep polling
