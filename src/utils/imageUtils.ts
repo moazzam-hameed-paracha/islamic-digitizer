@@ -3,15 +3,49 @@
 
 /**
  * Converts an image File to a base64 string (without the data URL prefix).
- * Optionally resizes very large images to stay within Claude's token budget.
  */
 export async function imageFileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Strip the "data:image/...;base64," prefix
       resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+const MAX_SIDE_PX = 2000;
+const JPEG_QUALITY = 0.88;
+
+/**
+ * Resizes an image to at most MAX_SIDE_PX on each side and re-encodes as JPEG.
+ * Keeps the base64 payload well under Vercel's 4.5 MB body limit.
+ */
+export async function compressImageForOcr(
+  file: File,
+): Promise<{ base64: string; mediaType: "image/jpeg" }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > MAX_SIDE_PX || height > MAX_SIDE_PX) {
+          const ratio = Math.min(MAX_SIDE_PX / width, MAX_SIDE_PX / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+        resolve({ base64: dataUrl.split(",")[1], mediaType: "image/jpeg" });
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);

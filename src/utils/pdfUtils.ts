@@ -42,6 +42,5 @@ export async function renderPdfPageToBase64(
   const ctx = canvas.getContext("2d")!;
   await page.render({ canvasContext: ctx, viewport }).promise;
 
-  // Return base64 without the data URL prefix
-  return canvas.toDataURL("image/png").split(",")[1];
+  return canvas.toDataURL("image/jpeg", 0.88).split(",")[1];
 }

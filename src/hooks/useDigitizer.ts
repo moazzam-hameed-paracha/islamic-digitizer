@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { DigitizationJob, UploadedFile, PageResult, FileType } from "@/types";
 import { renderPdfPageToBase64, getPdfPageCount } from "@/utils/pdfUtils";
-import { imageFileToBase64, imageFileToDataUrl, getMediaType } from "@/utils/imageUtils";
+import { compressImageForOcr, imageFileToDataUrl } from "@/utils/imageUtils";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
@@ -173,13 +173,11 @@ export function useDigitizer() {
 
         if (fileType === "pdf") {
           imageBase64 = await renderPdfPageToBase64(firstFile, pageNum);
-          mediaType = "image/png";
+          mediaType = "image/jpeg";
         } else if (isMultiImage) {
-          imageBase64 = await imageFileToBase64(files[i]);
-          mediaType = getMediaType(files[i]);
+          ({ base64: imageBase64, mediaType } = await compressImageForOcr(files[i]));
         } else {
-          imageBase64 = await imageFileToBase64(firstFile);
-          mediaType = getMediaType(firstFile);
+          ({ base64: imageBase64, mediaType } = await compressImageForOcr(firstFile));
         }
 
         const ocrResult = await runOcr(imageBase64, mediaType, () => abortRef.current);
@@ -296,10 +294,9 @@ export function useDigitizer() {
 
         if (fileType === "pdf") {
           imageBase64 = await renderPdfPageToBase64(firstFile, i + 1);
-          mediaType = "image/png";
+          mediaType = "image/jpeg";
         } else {
-          imageBase64 = await imageFileToBase64(files[i]);
-          mediaType = getMediaType(files[i]);
+          ({ base64: imageBase64, mediaType } = await compressImageForOcr(files[i]));
         }
 
         const ocrResult = await runOcr(imageBase64, mediaType, () => abortRef.current);
