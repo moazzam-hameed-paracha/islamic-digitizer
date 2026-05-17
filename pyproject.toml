@@ -7,7 +7,6 @@ requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.13.0",
     "pillow>=12.2.0",
-    "qwen-vl-utils>=0.0.14",
     "torch>=2.11.0",
     "torchvision>=0.20.0",
     "torchaudio>=2.5.0",

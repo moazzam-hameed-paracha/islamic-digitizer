@@ -21,7 +21,6 @@ gpu_image = (
     .pip_install(
         "transformers>=5.5.4",
         "peft>=0.19.1",
-        "qwen-vl-utils>=0.0.14",
         "pillow>=12.2.0",
         "fastapi>=0.136.0",
         "accelerate>=1.13.0",
