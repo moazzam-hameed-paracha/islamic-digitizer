@@ -14,29 +14,15 @@ function detectFileType(file: File): FileType {
   return "image";
 }
 
-/** Shared helper — calls the OCR API and returns a partial PageResult. */
-async function runOcr(
-  imageBase64: string,
-  mediaType: string
-): Promise<Partial<PageResult>> {
-  const res = await fetch("/api/digitize", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageBase64, mediaType }),
-  });
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes
 
-  if (res.status === 422) {
-    const errBody = await res.json();
-    if (errBody.error === "MAX_TOKENS_REACHED") {
-      throw new Error(
-        `Max tokens reached (${errBody.tokenCount ?? "?"}/${errBody.maxTokens ?? "?"}): output was truncated before completion.`
-      );
-    }
-  }
-
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-
-  const ocrResult = await res.json();
+function extractPageResult(ocrResult: {
+  text?: string;
+  tokenCount?: number;
+  maxTokens?: number;
+  duration?: number;
+}): Partial<PageResult> {
   return {
     arabicText: ocrResult.text ?? "",
     status: "done" as const,
@@ -44,6 +30,80 @@ async function runOcr(
     maxTokens: ocrResult.maxTokens,
     duration: ocrResult.duration,
   };
+}
+
+/** Shared helper — calls the OCR API and returns a partial PageResult.
+ *
+ * Production (Modal): POST returns {jobId}, then polls until done.
+ * Local dev: POST returns the full result directly (no polling needed).
+ */
+async function runOcr(
+  imageBase64: string,
+  mediaType: string,
+  isCancelled: () => boolean
+): Promise<Partial<PageResult>> {
+  const submitRes = await fetch("/api/digitize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageBase64, mediaType }),
+  });
+
+  if (submitRes.status === 422) {
+    const errBody = await submitRes.json();
+    if (errBody.error === "MAX_TOKENS_REACHED") {
+      throw new Error(
+        `Max tokens reached (${errBody.tokenCount ?? "?"}/${errBody.maxTokens ?? "?"}): output was truncated before completion.`
+      );
+    }
+  }
+
+  if (!submitRes.ok) throw new Error(`API error: ${submitRes.status}`);
+
+  const submitData = await submitRes.json() as Record<string, unknown>;
+
+  // Local dev: server returned the full result directly.
+  if (!("jobId" in submitData)) {
+    return extractPageResult(submitData as Parameters<typeof extractPageResult>[0]);
+  }
+
+  // Production: poll until the job completes.
+  const jobId = submitData.jobId as string;
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    if (isCancelled()) throw new Error("Cancelled");
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    if (isCancelled()) throw new Error("Cancelled");
+
+    const pollRes = await fetch(`/api/digitize/${jobId}`);
+    if (!pollRes.ok) throw new Error(`Poll error: ${pollRes.status}`);
+
+    const data = await pollRes.json() as {
+      status: "pending" | "done" | "error";
+      text?: string;
+      tokenCount?: number;
+      maxTokens?: number;
+      duration?: number;
+      error?: string;
+    };
+
+    if (data.status === "done") {
+      return extractPageResult(data);
+    }
+
+    if (data.status === "error") {
+      if (data.error === "MAX_TOKENS_REACHED") {
+        throw new Error(
+          `Max tokens reached (${data.tokenCount ?? "?"}/${data.maxTokens ?? "?"}): output was truncated before completion.`
+        );
+      }
+      throw new Error(data.error ?? "OCR failed");
+    }
+
+    // status === "pending" — keep polling
+  }
+
+  throw new Error("OCR timed out after 6 minutes");
 }
 
 export function useDigitizer() {
@@ -129,7 +189,7 @@ export function useDigitizer() {
           mediaType = getMediaType(firstFile);
         }
 
-        const ocrResult = await runOcr(imageBase64, mediaType);
+        const ocrResult = await runOcr(imageBase64, mediaType, () => abortRef.current);
 
         setJob((prev) => {
           if (!prev) return prev;
@@ -249,7 +309,7 @@ export function useDigitizer() {
           mediaType = getMediaType(files[i]);
         }
 
-        const ocrResult = await runOcr(imageBase64, mediaType);
+        const ocrResult = await runOcr(imageBase64, mediaType, () => abortRef.current);
 
         setJob((prev) => {
           if (!prev) return prev;

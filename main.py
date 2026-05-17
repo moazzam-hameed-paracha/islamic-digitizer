@@ -56,19 +56,16 @@ def log_progress(request_id: str, start_time: float, percent: int, stage: str) -
 # API Endpoint
 # ---------------------------------------------------------------------------
 
-@app.post("/api/digitize")
-async def digitize_image(payload: OCRRequest):
-    request_id = str(uuid.uuid4())[:8]
+async def _run_ocr(data_url: str, request_id: str) -> dict:
+    """Core OCR logic. Returns result dict or raises HTTPException."""
     start_time = time.time()
-    
+
     # 1. Decode Base64 string
     try:
-        # Splits 'data:image/png;base64,iVBOR...' into metadata and actual data
-        if "," in payload.dataUrl:
-            header, encoded = payload.dataUrl.split(",", 1)
+        if "," in data_url:
+            _, encoded = data_url.split(",", 1)
         else:
-            encoded = payload.dataUrl
-
+            encoded = data_url
         image_data = base64.b64decode(encoded)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Base64 string.")
@@ -89,7 +86,7 @@ async def digitize_image(payload: OCRRequest):
 
     try:
         print(f"--- [NEW REQUEST: {request_id}] ---", flush=True)
-        
+
         messages = [
             {
                 "role": "user",
@@ -103,7 +100,7 @@ async def digitize_image(payload: OCRRequest):
         # --- Inference Logic ---
         text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         vision_info = cast(Any, process_vision_info(messages))
-        
+
         image_inputs, video_inputs = vision_info[0], vision_info[1]
 
         inputs = processor(
@@ -184,6 +181,8 @@ async def digitize_image(payload: OCRRequest):
             "maxTokens": MAX_TOKENS,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[CRITICAL ERROR: {request_id}] {str(e)}", flush=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -191,6 +190,12 @@ async def digitize_image(payload: OCRRequest):
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+
+@app.post("/api/digitize")
+async def digitize_image(payload: OCRRequest):
+    request_id = str(uuid.uuid4())[:8]
+    return await _run_ocr(payload.dataUrl, request_id)
 
 if __name__ == "__main__":
     import uvicorn

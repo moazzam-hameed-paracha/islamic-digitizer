@@ -1,77 +1,21 @@
-// src/app/api/digitize/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { addArabicDiacritics } from '@/lib/gemini';
 
 // ---------------------------------------------------------------------------
-// Qari OCR — local FastAPI server
+// Qari OCR — submit a digitization job
 //
-// The Python script (main.py) runs via uvicorn  →  http://localhost:7860
+// Production (Modal): POST returns { jobId } immediately. The client then
+//   polls GET /api/digitize/[jobId] until the job completes.
 //
-// The FastAPI server exposes a single REST endpoint:
-//   POST /api/digitize
-//   Body:  { "dataUrl": "data:<mediaType>;base64,<base64>" }
-//   Reply: { "id": "...", "text": "...", "duration": <float>, ... }
+// Local dev: the local FastAPI server is blocking and returns the full result
+//   directly. The route detects this case and returns the result inline so
+//   local development works without any changes.
 // ---------------------------------------------------------------------------
 
 const OCR_SERVER_URL =
 	process.env.OCR_SERVER_URL?.replace(/\/$/, '') ?? 'http://localhost:7860';
 
 const OCR_ENDPOINT = `${OCR_SERVER_URL}/api/digitize`;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash';
-const GEMINI_ENDPOINT = GEMINI_API_KEY
-	? `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
-	: null;
-
-async function addArabicDiacritics(text: string): Promise<string> {
-	if (!text.trim() || !GEMINI_ENDPOINT) {
-		return text;
-	}
-
-	try {
-		const prompt =
-			'You are an Arabic diacritization assistant. Add full Arabic diacritics (tashkeel/eraab) to the text while preserving the exact same words, order, punctuation, and line breaks. Do not translate, explain, summarize, or add/remove words. Return only the diacritized Arabic text.\n\n' +
-			text;
-
-		const res = await fetch(GEMINI_ENDPOINT, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				contents: [{ parts: [{ text: prompt }] }],
-				generationConfig: {
-					temperature: 0.1,
-				},
-			}),
-		});
-
-		if (!res.ok) {
-			console.error('Gemini diacritization error:', await res.text());
-			return text;
-		}
-
-		const data = (await res.json()) as {
-			candidates?: Array<{
-				content?: {
-					parts?: Array<{ text?: string }>;
-				};
-			}>;
-		};
-
-		const diacritized =
-			data.candidates?.[0]?.content?.parts
-				?.map((part) => part.text ?? '')
-				.join('')
-				.trim() ?? '';
-
-		return diacritized || text;
-	} catch (error) {
-		console.error('Gemini diacritization exception:', error);
-		return text;
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Route handler
-// ---------------------------------------------------------------------------
 
 export async function GET(_req: NextRequest) {
 	return NextResponse.json(
@@ -95,7 +39,6 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// The FastAPI server expects the image as a data-URL string.
 		const dataUrl = `data:${mediaType ?? 'image/png'};base64,${imageBase64}`;
 
 		const ocrRes = await fetch(OCR_ENDPOINT, {
@@ -142,22 +85,27 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const ocrResponse = (await ocrRes.json()) as {
+		const result = (await ocrRes.json()) as Record<string, unknown>;
+
+		// Modal gateway: returns { jobId } — client will poll for the result.
+		if ('jobId' in result) {
+			return NextResponse.json({ jobId: result.jobId });
+		}
+
+		// Local dev: blocking server returns the full result directly.
+		// Apply Gemini diacritization here before forwarding to the client.
+		const ocrResponse = result as {
 			id: string;
 			text: string;
 			duration: number;
 			tokenCount?: number;
 			maxTokens?: number;
 		};
-
-		const diacritizedText = await addArabicDiacritics(ocrResponse.text);
-		ocrResponse.text = diacritizedText;
-
+		ocrResponse.text = await addArabicDiacritics(ocrResponse.text);
 		return NextResponse.json(ocrResponse);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
 
-		// Give a friendlier message when the local server is simply not running.
 		if (message.includes('ECONNREFUSED') || message.includes('fetch failed')) {
 			return NextResponse.json(
 				{
