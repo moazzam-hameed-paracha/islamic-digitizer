@@ -9,7 +9,7 @@ job_store = modal.Dict.from_name("ocr-jobs", create_if_missing=True)
 # Persistent volume caches HuggingFace model weights (~4 GB).
 volume = modal.Volume.from_name("qari-ocr-models", create_if_missing=True)
 
-# Heavy image: PyTorch (CUDA 12.6) + all ML deps + main.py
+# Heavy image: PyTorch (CUDA 12.6) + all ML deps + ocr.py
 gpu_image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
@@ -27,7 +27,7 @@ gpu_image = (
         "accelerate>=1.13.0",
         "python-multipart>=0.0.26",
     )
-    .add_local_python_source("main")
+    .add_local_python_source("ocr")
 )
 
 # Lightweight image: just enough to run the FastAPI gateway (no torch/CUDA).
