@@ -8,7 +8,7 @@ from PIL import Image
 from typing import Any, cast
 from fastapi import HTTPException
 from transformers import (
-    Qwen2VLForConditionalGeneration,
+    Qwen3VLForConditionalGeneration as AutoModelForVision2Seq,
     AutoProcessor,
     TextIteratorStreamer,
 )
@@ -16,26 +16,25 @@ from transformers import (
 # ---------------------------------------------------------------------------
 # Model loading
 # ---------------------------------------------------------------------------
-BASE_MODEL = "Qwen/Qwen2-VL-2B-Instruct"
-ADAPTER_MODEL = "NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct"
+BASE_MODEL = "Qwen/Qwen3-VL-4B-Instruct"
+ADAPTER_MODEL = "NAMAA-Space/Qari-OCR-0.4.0-VL-4B-Instruct"
 MAX_TOKENS = 2000
 
-# Qwen2-VL image-size bounds (in pixels, multiples of 28).
-# Larger MAX → better accuracy on dense pages, slower inference.
-MIN_PIXELS = 256 * 28 * 28  # ~200K px
-MAX_PIXELS = 1280 * 28 * 28  # ~1M px — good sweet spot for full pages
+# Qwen3-VL image-size bounds (multiples of 28).
+MIN_PIXELS = 256 * 28 * 28
+MAX_PIXELS = 1280 * 28 * 28
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if device == "cuda" else torch.float32
 
 try:
-    model = Qwen2VLForConditionalGeneration.from_pretrained(
+    model = AutoModelForVision2Seq.from_pretrained(
         BASE_MODEL, torch_dtype=torch_dtype, device_map=device, trust_remote_code=True
     )
     model.load_adapter(ADAPTER_MODEL)
-    model.eval()  # disable dropout, etc.
+    model.eval()
     processor = AutoProcessor.from_pretrained(
-        ADAPTER_MODEL,
+        BASE_MODEL,  # processor from base, not adapter
         trust_remote_code=True,
         min_pixels=MIN_PIXELS,
         max_pixels=MAX_PIXELS,
@@ -46,7 +45,6 @@ except Exception as e:
     exit(1)
 
 
-# Better prompt: explicit about structure, paragraphs, headers, and what NOT to do.
 PROMPT = (
     "You are an expert Arabic OCR system. Transcribe the text in this document "
     "image exactly as it appears.\n\n"
@@ -79,7 +77,7 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Base64 string.")
 
-    # 2. Load image — pass PIL Image directly to the processor (no disk I/O).
+    # 2. Load image
     try:
         img = Image.open(io.BytesIO(image_data)).convert("RGB")
     except Exception as e:
@@ -92,21 +90,18 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
             {
                 "role": "user",
                 "content": [
-                    {"type": "image", "image": img},  # PIL Image — no temp file
+                    {"type": "image", "image": img},
                     {"type": "text", "text": PROMPT},
                 ],
             }
         ]
 
-        text = processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-
-        # Build inputs directly — no need for qwen_vl_utils when passing PIL Images.
-        inputs = processor(
-            text=[text],
-            images=[img],
-            padding=True,
+        # Qwen3-VL uses apply_chat_template with tokenize=True and return_dict=True
+        inputs = processor.apply_chat_template(
+            messages,
+            tokenize=True,
+            add_generation_prompt=True,
+            return_dict=True,
             return_tensors="pt",
         ).to(device)
 
@@ -116,10 +111,6 @@ async def _run_ocr(data_url: str, request_id: str) -> dict:
         generation_error: Exception | None = None
         generation_start = time.time()
 
-        # Generation kwargs tuned for OCR:
-        # - do_sample=False  → greedy decoding (deterministic, no hallucination from sampling)
-        # - repetition_penalty=1.05 → small nudge against repeating phrases (common Qwen2-VL failure)
-        # - num_beams=1 → greedy (beam search rarely helps OCR and is much slower)
         gen_kwargs = dict(
             **inputs,
             max_new_tokens=MAX_TOKENS,

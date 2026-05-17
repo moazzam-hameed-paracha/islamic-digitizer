@@ -25,7 +25,7 @@ gpu_image = (
         extra_index_url="https://download.pytorch.org/whl/cu126",
     )
     .pip_install(
-        "transformers>=5.5.4",
+        "transformers>=4.57.0",  # Qwen3-VL minimum requirement
         "peft>=0.19.1",
         "pillow>=12.2.0",
         "fastapi>=0.136.0",
@@ -37,7 +37,7 @@ gpu_image = (
         {
             "HF_HOME": HF_CACHE,
             "TRANSFORMERS_CACHE": HF_CACHE,
-            "HF_XET_HIGH_PERFORMANCE": "1",  # faster model downloads
+            "HF_XET_HIGH_PERFORMANCE": "1",
         }
     )
     .add_local_python_source("ocr")
@@ -49,17 +49,15 @@ gateway_image = modal.Image.debian_slim(python_version="3.12").pip_install(
 
 
 # ---------------------------------------------------------------------------
-# OCR worker — class-based so model loads ONCE per container
+# OCR worker
 # ---------------------------------------------------------------------------
 @app.cls(
     image=gpu_image,
-    gpu="A10G",
+    gpu="A10G",  # 24GB VRAM — sufficient for 4B fp16 (~8GB used)
     volumes={HF_CACHE: volume},
     timeout=300,
-    scaledown_window=5,  # keep warm for 5 secs after last request
-    min_containers=0,  # set to 1 if you want zero cold starts (costs more)
+    single_use_containers=True,
 )
-@modal.concurrent(max_inputs=2)  # 2 concurrent requests share one warm GPU
 class OCRWorker:
     @modal.enter()
     def load(self) -> None:
@@ -112,7 +110,7 @@ def gateway() -> object:
 
     @gw.post("/api/digitize")
     async def submit_job(payload: OCRRequest):
-        job_id = str(uuid.uuid4())  # full UUID — no collision risk
+        job_id = str(uuid.uuid4())
         await job_store.put.aio(
             job_id,
             {"status": "pending", "createdAt": time.time()},
