@@ -31,9 +31,8 @@ gpu_image = (
 )
 
 # Lightweight image: just enough to run the FastAPI gateway (no torch/CUDA).
-gateway_image = (
-    modal.Image.debian_slim(python_version="3.12")
-    .pip_install("fastapi>=0.136.0", "uvicorn>=0.44.0")
+gateway_image = modal.Image.debian_slim(python_version="3.12").pip_install(
+    "fastapi>=0.136.0", "uvicorn>=0.44.0"
 )
 
 
@@ -54,7 +53,7 @@ def run_ocr_job(job_id: str, data_url: str) -> None:
     from fastapi import HTTPException
 
     os.environ["HF_HOME"] = "/cache"
-    from orc_modal.ocr import _run_ocr  # triggers model loading on first import
+    from ocr import _run_ocr  # triggers model loading on first import
 
     try:
         result = asyncio.run(_run_ocr(data_url, job_id))
@@ -95,7 +94,10 @@ def gateway() -> object:
     async def submit_job(payload: OCRRequest):
         job_id = str(uuid.uuid4())[:8]
         await job_store.put.aio(job_id, {"status": "pending"})
-        run_ocr_job.spawn(job_id, payload.dataUrl)
+        try:
+            await run_ocr_job.spawn.aio(job_id, payload.dataUrl)
+        except Exception as exc:
+            await job_store.put.aio(job_id, {"status": "error", "error": str(exc)})
         return {"jobId": job_id}
 
     @gw.get("/api/digitize/{job_id}")
@@ -103,6 +105,8 @@ def gateway() -> object:
         result = await job_store.get.aio(job_id)
         if result is None:
             raise HTTPException(status_code=404, detail="Job not found")
+        if result.get("status") != "pending":
+            await job_store.pop.aio(job_id)
         return result
 
     return gw
